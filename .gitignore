@@ -12,3 +12,6 @@ go.work.sum
 deploy/.env
 /data/
 *.log
+/api/probe
+/api/server
+/api/cli
