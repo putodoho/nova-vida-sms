@@ -1,0 +1,229 @@
+openapi: 3.1.0
+info:
+  title: Nova Vida SMS API
+  version: 0.1.0
+  description: |
+    School management API. Session cookie `nv_session` (set by login).
+    Entity-scoped endpoints read header `X-Entity-ID` (a UUID, or `all` / absent on GET).
+    Money is integer centavos. Errors use the `Error` schema.
+servers:
+  - url: /api/v1
+security:
+  - session: []
+
+paths:
+  /auth/login:
+    post:
+      security: []
+      summary: Sign in and receive the session cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password]
+              properties:
+                login: { type: string, description: Email or phone }
+                password: { type: string }
+      responses:
+        "200": { description: Signed in, content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } } }
+        "401": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /auth/logout:
+    post:
+      summary: End the current session
+      responses:
+        "204": { description: Signed out }
+  /auth/me:
+    get:
+      summary: Current user, permissions and accessible entities
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } } }
+        "401": { $ref: "#/components/responses/Error" }
+  /auth/password:
+    post:
+      summary: Change own password (other sessions are ended)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string }
+                new_password: { type: string, minLength: 8 }
+      responses:
+        "204": { description: Changed }
+        "422": { $ref: "#/components/responses/Error" }
+  /permissions:
+    get:
+      summary: All permissions, for the roles editor
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/PermissionInfo" } }
+
+  /entities:
+    get:
+      summary: Entities in the request scope
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Entity" } }
+                  total: { type: integer }
+  /entities/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/EntityHeader" }
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      summary: Get an entity
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/Entity" } } } }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      summary: Update an entity (settings.manage; X-Entity-ID must equal id)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EntityInput" }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/Entity" } } } }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /entities/{id}/accounts:
+    parameters:
+      - { $ref: "#/components/parameters/EntityHeader" }
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      summary: Receiving accounts (cash, bank, M-Pesa, e-Mola)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Account" } }
+                  total: { type: integer }
+    post:
+      summary: Add a receiving account (settings.manage)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AccountInput" } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/Account" } } } }
+        "422": { $ref: "#/components/responses/Error" }
+  /entities/{id}/accounts/{accountId}:
+    put:
+      summary: Update a receiving account (settings.manage)
+      parameters:
+        - { $ref: "#/components/parameters/EntityHeader" }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: accountId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/AccountInput" } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/Account" } } } }
+
+components:
+  securitySchemes:
+    session: { type: apiKey, in: cookie, name: nv_session }
+  parameters:
+    EntityHeader:
+      name: X-Entity-ID
+      in: header
+      required: false
+      schema: { type: string }
+      description: Entity UUID; `all` or absent allowed on GET only.
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, examples: [validation_failed, unauthorized, forbidden, not_found] }
+        message: { type: string }
+        fields: { type: object, additionalProperties: { type: string } }
+    Me:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            login: { type: string }
+            display_name: { type: string }
+            roles: { type: array, items: { type: string } }
+            permissions: { type: array, items: { type: string } }
+            entity_ids: { type: array, items: { type: string, format: uuid } }
+        entities:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              code: { type: string, enum: [primary, preschool] }
+              short_name: { type: string }
+              legal_name: { type: string }
+    PermissionInfo:
+      type: object
+      properties:
+        code: { type: string }
+        module: { type: string }
+        label: { type: string }
+    Entity:
+      allOf:
+        - $ref: "#/components/schemas/EntityInput"
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            code: { type: string }
+            logo_path: { type: string }
+    EntityInput:
+      type: object
+      required: [legal_name, short_name, vat_method]
+      properties:
+        legal_name: { type: string }
+        short_name: { type: string }
+        nuit: { type: string, pattern: "^[0-9]{9}$" }
+        address: { type: string }
+        motto: { type: string }
+        vat_method: { type: string, enum: [added, included_standard, included_flat] }
+    Account:
+      allOf:
+        - $ref: "#/components/schemas/AccountInput"
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            entity_id: { type: string, format: uuid }
+    AccountInput:
+      type: object
+      required: [kind, label]
+      properties:
+        kind: { type: string, enum: [cash, bank, mpesa, emola] }
+        label: { type: string }
+        holder: { type: string }
+        number: { type: string }
+        nib: { type: string }
+        active: { type: boolean }
