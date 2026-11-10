@@ -8,7 +8,9 @@ Read before working:
 - `docs/ui-prototype-review.md` — design tokens and known prototype issues; `docs/prototype/index.html` is the visual reference.
 
 ## Stack
-- `api/`: Go, chi, pgx/v5, sqlc, goose, slog. Contract in `api/openapi.yaml`.
+- `api/`: Go, chi, pgx/v5 (hand-written SQL), embedded migrations, slog. Contract in `api/openapi.yaml`.
+- Tests: `TEST_DATABASE_URL=... go test -p 1 ./...` from `api/` (integration tests reset that database).
+- Keep `docs/progress.md` current at the end of each session.
 - `web/`: React + Vite + TypeScript, Tailwind, shadcn/ui, TanStack Query, react-hook-form + zod.
 - `deploy/`: Docker Compose (caddy, api, postgres, gotenberg).
 

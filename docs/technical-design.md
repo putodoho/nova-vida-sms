@@ -11,8 +11,8 @@ A single web application serving two legal entities (preschool and primary schoo
 
 | Layer | Choice | Why |
 | --- | --- | --- |
-| API | Go 1.23, `chi` router, `pgx/v5`, `sqlc` | Plain SQL, typed queries, no ORM magic around money |
-| Migrations | `goose` (SQL files, embedded) | Runs on API start or via CLI |
+| API | Go 1.24, `chi` router, `pgx/v5` with hand-written SQL | Plain SQL, no ORM magic around money |
+| Migrations | Embedded SQL files + small runner (`internal/db`) | Runs on API start or via CLI |
 | Validation | `go-playground/validator` | Request DTOs |
 | Logging | `log/slog` (JSON) | Standard library |
 | Auth | Server-side sessions in Postgres, opaque token in `HttpOnly; Secure; SameSite=Lax` cookie; `argon2id` passwords | Revocable sessions, no token handling in the browser |
@@ -34,9 +34,8 @@ nova-vida-sms/
 │   ├── cmd/cli/main.go             # migrate, seed, create-admin, import
 │   ├── internal/
 │   │   ├── config/
-│   │   ├── db/                     # sqlc generated code + tx helper
-│   │   │   ├── migrations/*.sql
-│   │   │   └── queries/*.sql
+│   │   ├── db/                     # pool, tx helper, migration runner
+│   │   │   └── migrations/*.sql
 │   │   ├── auth/                   # sessions, passwords, RBAC middleware
 │   │   ├── httpx/                  # router, errors, pagination, entity scope
 │   │   ├── money/                  # Money type, VAT, rounding
@@ -50,7 +49,6 @@ nova-vida-sms/
 │   │       ├── charges/ payments/ discounts/ documents/ reports/
 │   │       └── users/
 │   ├── openapi.yaml
-│   ├── sqlc.yaml
 │   └── Dockerfile
 ├── web/
 │   ├── src/{app,components,features,lib,api}/

@@ -1,0 +1,14 @@
+# Local Go workspace (sandbox-only replaces)
+go.work
+go.work.sum
+
+# Build output
+/api/bin/
+/web/node_modules/
+/web/dist/
+
+# Env and data
+.env
+deploy/.env
+/data/
+*.log
