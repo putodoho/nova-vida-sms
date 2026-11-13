@@ -6,9 +6,9 @@ Keep this file current at the end of every work session: what is done, what is n
 
 | # | Milestone | Status |
 | --- | --- | --- |
-| 1 | Foundation: schema, auth, RBAC, audit, entity scope, seed, compose | Done (PR `feat/m1-foundation`) |
-| 2 | Settings API: years, levels/penalty rules, classes, fee catalogue, discount types, roles and users | Next |
-| 3 | Pupils, guardians, enrolment, charge generation, renewal | |
+| 1 | Foundation: schema, auth, RBAC, audit, entity scope, seed, compose | Done (PR #1, #2) |
+| 2 | Settings API: years, levels/penalty rules, classes, fee catalogue, discount types, roles and users | Done (PR `feat/m2-settings`) |
+| 3 | Pupils, guardians, enrolment, charge generation, renewal | Next |
 | 4 | Payments: preview, allocation, receipts, numbering, cancellation | |
 | 5 | Penalties job, waivers, discount requests | |
 | 6 | PDFs (Gotenberg), dashboard, reports, Excel export | |
@@ -29,6 +29,13 @@ Keep this file current at the end of every work session: what is done, what is n
 - Docker: API image (distroless), compose with Postgres, Gotenberg, Caddy.
 - Integration tests (auth flow, scope, permissions, validation, audit, accounts).
 
+## Milestone 2 — done
+
+- `internal/billing/rules.go`: penalty rule (none / percent / fixed tiers, replace or cumulative) and one-off due rule, validated, with tests.
+- Settings endpoints (`internal/modules/settings`): school years (global; months and due day frozen once charges exist), levels with penalty rules, classes (capacity cannot drop below enrolled; delete only without enrolments), fee catalogue with class scope and net/VAT/gross lines, copy catalogue between years, discount types.
+- Access endpoints (`internal/modules/access`): staff, users (roles + entities; lower-case logins; only grant entities the actor has; cannot deactivate self or remove the last active admin; deactivation and password reset end sessions), roles (admin role always has every permission; system roles cannot be deleted).
+- Every write audited; integration tests for all of the above. OpenAPI 0.2.0.
+
 ## Decisions taken during build (differences from the design doc)
 
 - **No sqlc / goose**: queries are hand-written with pgx in each module; migrations use a ~60-line embedded runner. Fewer tools to install; same safety.
@@ -38,8 +45,8 @@ Keep this file current at the end of every work session: what is done, what is n
 
 ## Notes for whoever continues
 
-- `go.sum` is not committed yet: the build sandbox cannot reach proxy.golang.org. Run `go mod tidy` in `api/` once and commit `go.sum`. The Dockerfile runs `go mod tidy` if it is missing.
-- The sandbox uses a git-ignored `go.work` that replaces `golang.org/x/*` with their GitHub mirrors; not needed on a normal machine.
+- `go.sum` is committed; the Dockerfile requires it. After adding a dependency, run `go mod tidy` on a machine with normal internet access and commit `go.sum`.
+- The build sandbox uses a git-ignored `go.work` that maps `golang.org/x/*` and `gopkg.in/*` to their GitHub mirrors; not needed on a normal machine.
 
 ## Open questions for the client
 

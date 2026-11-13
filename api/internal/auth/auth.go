@@ -336,3 +336,13 @@ var dummyHash = func() string {
 	h, _ := HashPassword("not-a-real-password")
 	return h
 }()
+
+// SingleEntity returns the one entity selected for this request, or a 400 when
+// the request is scoped to all entities. Use it in every write handler.
+func SingleEntity(ctx context.Context) (uuid.UUID, error) {
+	s := EntityScope(ctx)
+	if s.All || s.EntityID == uuid.Nil {
+		return uuid.Nil, httpx.BadRequest("Seleccione uma empresa (cabeçalho X-Entity-ID).")
+	}
+	return s.EntityID, nil
+}

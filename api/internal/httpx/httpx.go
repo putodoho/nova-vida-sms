@@ -8,6 +8,9 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 // Error is an API error with an HTTP status and a stable machine code.
@@ -102,4 +105,41 @@ func ParsePage(r *http.Request) Page {
 type List[T any] struct {
 	Items []T `json:"items"`
 	Total int `json:"total"`
+}
+
+// PathUUID parses a UUID URL parameter; an invalid value is a 404.
+func PathUUID(r *http.Request, name string) (uuid.UUID, error) {
+	id, err := uuid.Parse(chi.URLParam(r, name))
+	if err != nil {
+		return uuid.Nil, NotFound()
+	}
+	return id, nil
+}
+
+// QueryInt reads an integer query parameter, returning def when absent or invalid.
+func QueryInt(r *http.Request, name string, def int) int {
+	if v, err := strconv.Atoi(r.URL.Query().Get(name)); err == nil {
+		return v
+	}
+	return def
+}
+
+// Fields collects validation messages.
+type Fields map[string]string
+
+// Add records msg for field when cond is true.
+func (f Fields) Add(cond bool, field, msg string) {
+	if cond {
+		if _, exists := f[field]; !exists {
+			f[field] = msg
+		}
+	}
+}
+
+// Err returns a validation error when any field failed, else nil.
+func (f Fields) Err() error {
+	if len(f) == 0 {
+		return nil
+	}
+	return Validation(f)
 }
