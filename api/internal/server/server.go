@@ -15,7 +15,9 @@ import (
 	"github.com/putodoho/nova-vida-sms/api/internal/httpx"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/access"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/authapi"
+	"github.com/putodoho/nova-vida-sms/api/internal/modules/enrolments"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/entities"
+	"github.com/putodoho/nova-vida-sms/api/internal/modules/pupils"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/settings"
 )
 
@@ -23,6 +25,8 @@ type Deps struct {
 	Pool *pgxpool.Pool
 	Auth *auth.Service
 	Log  *slog.Logger
+	Loc  *time.Location   // school time zone
+	Now  func() time.Time // optional clock override (tests)
 }
 
 // New returns the API handler mounted at /api.
@@ -47,6 +51,8 @@ func New(d Deps) http.Handler {
 	entitiesH := &entities.Handler{Pool: d.Pool}
 	settingsH := &settings.Handler{Pool: d.Pool}
 	accessH := &access.Handler{Pool: d.Pool}
+	pupilsH := &pupils.Handler{Pool: d.Pool}
+	enrolH := &enrolments.Handler{Pool: d.Pool, Loc: d.Loc, Now: d.Now}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		authH.PublicRoutes(r)
@@ -56,10 +62,12 @@ func New(d Deps) http.Handler {
 			// Global (not entity-scoped) resources.
 			settingsH.GlobalRoutes(r)
 			accessH.Routes(r)
+			pupilsH.Routes(r)
 			r.Group(func(r chi.Router) {
 				r.Use(auth.ScopeEntity)
 				entitiesH.Routes(r)
 				settingsH.ScopedRoutes(r)
+				enrolH.Routes(r)
 			})
 		})
 	})
