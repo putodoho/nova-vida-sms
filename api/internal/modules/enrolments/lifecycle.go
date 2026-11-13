@@ -16,6 +16,7 @@ import (
 	"github.com/putodoho/nova-vida-sms/api/internal/billing"
 	"github.com/putodoho/nova-vida-sms/api/internal/db"
 	"github.com/putodoho/nova-vida-sms/api/internal/httpx"
+	"github.com/putodoho/nova-vida-sms/api/internal/ledger"
 )
 
 // ---------------------------------------------------------------------------
@@ -102,6 +103,9 @@ func (h *Handler) confirmTx(ctx context.Context, tx pgx.Tx, entityID, id uuid.UU
 		return err
 	}
 	if err := insertCharges(ctx, tx, entityID, e, drafts); err != nil {
+		return err
+	}
+	if err := ledger.ApplyCredit(ctx, tx, entityID, e.PupilID); err != nil {
 		return err
 	}
 	return audit.Write(ctx, tx, audit.Entry{EntityID: &entityID, Action: "confirm", Table: "enrolment", RecordID: id.String(),
@@ -322,6 +326,9 @@ func (h *Handler) changeServices(w http.ResponseWriter, r *http.Request) error {
 				}
 			}
 			if err := insertCharges(r.Context(), tx, entityID, e, keep); err != nil {
+				return err
+			}
+			if err := ledger.ApplyCredit(r.Context(), tx, entityID, e.PupilID); err != nil {
 				return err
 			}
 			if _, err := tx.Exec(r.Context(), `

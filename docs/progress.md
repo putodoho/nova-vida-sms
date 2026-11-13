@@ -8,9 +8,9 @@ Keep this file current at the end of every work session: what is done, what is n
 | --- | --- | --- |
 | 1 | Foundation: schema, auth, RBAC, audit, entity scope, seed, compose | Done (PR #1, #2) |
 | 2 | Settings API: years, levels/penalty rules, classes, fee catalogue, discount types, roles and users | Done (PR #3) |
-| 3 | Pupils, guardians, enrolment, charge generation, renewal | Done (PR `feat/m3-enrolment`) |
-| 4 | Payments: preview, allocation, receipts, numbering, cancellation | Next |
-| 5 | Penalties job, waivers, discount requests | |
+| 3 | Pupils, guardians, enrolment, charge generation, renewal | Done (PR #4) |
+| 4 | Payments: preview, allocation, receipts, numbering, cancellation | Done (PR `feat/m4-payments`) |
+| 5 | Penalties job, waivers, discount requests | Next |
 | 6 | PDFs (Gotenberg), dashboard, reports, Excel export | |
 | 7 | Web app (React) | |
 | 8 | Import of existing data, backups, go-live | |
@@ -44,6 +44,13 @@ Keep this file current at the end of every work session: what is done, what is n
 - Pupils (`internal/modules/pupils`, global): create/update, quick search, profile (health only with `health.read`; `health_alert` always), health record (audit logs only that it changed), guardian links (exactly one payer; link existing or create inline), pick-up persons, emergency contacts; guardians search by name/phone digits, detail with children.
 - Enrolments (`internal/modules/enrolments`, entity-scoped): draft with services and charge preview; confirm (fees consent, one payer, class capacity with row lock, one confirmed enrolment per pupil and year) generates charges; withdraw cancels unpaid charges due after the leaving date; change optional services from a month; bulk renewal into a new year (services carried by fee code, `re_enrolment` fee added, per-pupil result); pupils list with balances; pupil account with Em dívida / Total por pagar / Pago / Crédito.
 - API clock (`Deps.Now`, school time zone `Deps.Loc`) so "today" is the school's date; tests run at 10 March 2027.
+
+## Milestone 4 — done
+
+- `billing.Allocate`: oldest due first; on the same day penalties, then monthly fees, then one-off items; future charges included (advance payment); remainder is credit. Table tests.
+- `internal/ledger`: per-pupil advisory lock for every money movement, allocation writer, `ApplyCredit` (unallocated payments are applied when new charges appear — enrolment confirm, added services — and after a cancellation).
+- Payments (`internal/modules/payments`): preview without writing; create (method ↔ receiving account must match, reference required except cash, no future date, max one year back, duplicate reference refused, pupil must be enrolled in the entity); family payment split between children (one receipt each, shared group id); list with filters, sum and totals by method; detail with allocations and pupil balance; cancel with reason (receipt keeps its number).
+- Receipt numbers `REC-2027-00001` (primary) and `REC-JI-2027-00001` (preschool), gap-free under concurrency (tested with 10 parallel payments, race detector on). A year's series is created automatically on its first receipt; the receipt year is the payment date's year.
 
 ## Decisions taken during build (differences from the design doc)
 

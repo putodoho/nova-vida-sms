@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Nova Vida SMS API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     School management API. Session cookie `nv_session` (set by login).
     Entity-scoped endpoints read header `X-Entity-ID` (a UUID, or `all` / absent on GET).
@@ -465,6 +465,56 @@ paths:
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [monthly_fee_ids, from_month], properties: { monthly_fee_ids: { type: array, items: { type: string, format: uuid } }, from_month: { type: integer } } } } } }
       responses: { "200": { description: Updated } }
 
+  /payments:
+    get:
+      summary: Payments in scope (charges.read). Filters from, to, method, receiving_account_id, received_by, pupil_id, status (valid|cancelled), q (receipt, pupil, reference). Includes sum and by_method of valid payments matching the filters.
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      responses: { "200": { description: OK } }
+    post:
+      summary: Record a payment (payments.create). Allocated oldest first (penalties, then monthly, then one-off on the same day), future charges included; the rest is credit. Receipt number REC[-JI]-<year>-<seq>.
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentInput" } } } }
+      responses:
+        "201": { description: Payment with allocations and pupil balance after payment }
+        "409": { description: "duplicate_reference: same method + reference already registered" }
+        "422": { $ref: "#/components/responses/Error" }
+  /payments/preview:
+    post:
+      summary: What a payment of this amount would settle, without writing
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [pupil_id, amount], properties: { pupil_id: { type: string, format: uuid }, amount: { type: integer } } } } } }
+      responses: { "200": { description: "{open[], allocations[], credit, overdue, outstanding}" } }
+  /payments/group:
+    post:
+      summary: Family payment split between 2–8 children of the same entity; one payment and receipt per child, shared payment_group_id
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method, receiving_account_id, splits]
+              properties:
+                paid_on: { type: string, format: date }
+                method: { type: string, enum: [cash, bank, mpesa, emola] }
+                receiving_account_id: { type: string, format: uuid }
+                reference: { type: string }
+                notes: { type: string }
+                splits: { type: array, items: { type: object, properties: { pupil_id: { type: string, format: uuid }, amount: { type: integer } } } }
+      responses: { "201": { description: Created payments } }
+  /payments/{id}:
+    get:
+      summary: Payment with allocations
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      responses: { "200": { description: OK } }
+  /payments/{id}/cancel:
+    post:
+      summary: Cancel a payment (payments.cancel); keeps the receipt number, deactivates allocations, re-applies other credit
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 5 } } } } } }
+      responses: { "200": { description: Cancelled }, "409": { description: already_cancelled } }
+
 components:
   securitySchemes:
     session: { type: apiKey, in: cookie, name: nv_session }
@@ -705,3 +755,14 @@ components:
             fees_agreement: { type: boolean }
             uniform_books: { type: boolean }
             emergency_care: { type: boolean }
+    PaymentInput:
+      type: object
+      required: [pupil_id, amount, method, receiving_account_id]
+      properties:
+        pupil_id: { type: string, format: uuid }
+        amount: { type: integer, description: centavos }
+        paid_on: { type: string, format: date, description: "default today; not in the future, max one year back" }
+        method: { type: string, enum: [cash, bank, mpesa, emola] }
+        receiving_account_id: { type: string, format: uuid, description: "must match the method" }
+        reference: { type: string, description: "required unless cash" }
+        notes: { type: string }
