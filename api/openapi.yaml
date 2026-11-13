@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Nova Vida SMS API
-  version: 0.5.0
+  version: 0.6.0
   description: |
     School management API. Session cookie `nv_session` (set by login).
     Entity-scoped endpoints read header `X-Entity-ID` (a UUID, or `all` / absent on GET).
@@ -574,6 +574,79 @@ paths:
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [note], properties: { note: { type: string } } } } } }
       responses: { "200": { description: Rejected } }
 
+  /payments/{id}/receipt:
+    get:
+      summary: Receipt (A5) as PDF, or HTML with ?format=html; shows ANULADO when cancelled; amount in words
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/Format" }]
+      responses: { "200": { description: application/pdf or text/html }, "502": { description: pdf_unavailable (Gotenberg down) } }
+  /statements:
+    get:
+      summary: Issued statements (charges.read); ?pupil_id=
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      responses: { "200": { description: OK } }
+    post:
+      summary: Issue a numbered annual statement (documents.generate) for {pupil_id, year}; stored as an immutable snapshot
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [pupil_id], properties: { pupil_id: { type: string, format: uuid }, year: { type: integer } } } } } }
+      responses: { "201": { description: "{id, number, pupil_id, pupil_name, year, issued_at, issued_by}" } }
+  /statements/class:
+    post:
+      summary: Issue statements for every confirmed pupil of a class; returns one document, one statement per page
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Format" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [class_id], properties: { class_id: { type: string, format: uuid } } } } } }
+      responses: { "200": { description: application/pdf or text/html } }
+  /statements/{id}:
+    get:
+      summary: Render a stored statement (A4)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/Format" }]
+      responses: { "200": { description: application/pdf or text/html } }
+  /enrolments/{id}/form:
+    get:
+      summary: Printable enrolment form (A4) with consents and signature lines; health section only with health.read
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/Format" }]
+      responses: { "200": { description: application/pdf or text/html } }
+
+  /reports/dashboard:
+    get:
+      summary: Dashboard (reports.read) — expected and received this month, collection rate, overdue, pupils, month series, payments by method, top overdue accounts, recent payments, pending discounts
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }]
+      responses: { "200": { description: OK } }
+  /reports/income:
+    get:
+      summary: Valid payments between from and to grouped by month, method or account
+      parameters:
+        - { $ref: "#/components/parameters/EntityHeader" }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { name: group, in: query, schema: { type: string, enum: [month, method, account] } }
+        - { $ref: "#/components/parameters/ReportFormat" }
+      responses: { "200": { description: ReportTable or .xlsx, content: { application/json: { schema: { $ref: "#/components/schemas/ReportTable" } } } } }
+  /reports/arrears:
+    get:
+      summary: Per pupil — overdue today, outstanding for the year, days late, payer contact
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }, { $ref: "#/components/parameters/ReportFormat" }]
+      responses: { "200": { description: ReportTable or .xlsx } }
+  /reports/pupils:
+    get:
+      summary: Per class — capacity, enrolled, new, returning, withdrawn, drafts, occupancy
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }, { $ref: "#/components/parameters/ReportFormat" }]
+      responses: { "200": { description: ReportTable or .xlsx } }
+  /reports/discounts:
+    get:
+      summary: Approved discounts per pupil and type
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }, { $ref: "#/components/parameters/ReportFormat" }]
+      responses: { "200": { description: ReportTable or .xlsx } }
+  /reports/penalties:
+    get:
+      summary: Per fee month — penalties charged, paid, waived/cancelled, open
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }, { $ref: "#/components/parameters/ReportFormat" }]
+      responses: { "200": { description: ReportTable or .xlsx } }
+  /reports/vat:
+    get:
+      summary: Per due month — gross, VAT, net and discounts of non-cancelled charges
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }, { $ref: "#/components/parameters/ReportFormat" }]
+      responses: { "200": { description: ReportTable or .xlsx } }
+
 components:
   securitySchemes:
     session: { type: apiKey, in: cookie, name: nv_session }
@@ -589,6 +662,17 @@ components:
       required: false
       schema: { type: integer }
       description: School year (e.g. 2027); default is the open year.
+    Format:
+      name: format
+      in: query
+      required: false
+      schema: { type: string, enum: [pdf, html] }
+      description: pdf (default) or html for on-screen preview / browser printing
+    ReportFormat:
+      name: format
+      in: query
+      required: false
+      schema: { type: string, enum: [json, xlsx] }
     EntityHeader:
       name: X-Entity-ID
       in: header
@@ -825,3 +909,17 @@ components:
         receiving_account_id: { type: string, format: uuid, description: "must match the method" }
         reference: { type: string, description: "required unless cash" }
         notes: { type: string }
+    ReportTable:
+      type: object
+      properties:
+        title: { type: string }
+        columns:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              label: { type: string }
+              type: { type: string, enum: [text, int, money, date, percent] }
+        rows: { type: array, items: { type: array, items: {} } }
+        totals: { type: array, items: {} }

@@ -1,0 +1,82 @@
+{{define "form"}}<!doctype html>
+<html lang="pt"><head><meta charset="utf-8"><title>Ficha de matrícula {{.PupilName}}</title>
+{{template "css"}}
+<style>@page { size: A4; margin: 11mm 11mm; }</style>
+</head><body><div class="doc">
+<div class="header">
+  <div class="brand">
+    <div class="name">{{.Entity.LegalName}}</div>
+    <div class="meta">{{.Entity.Address}}{{if .Entity.NUIT}}<br>NUIT: {{.Entity.NUIT}}{{end}}</div>
+  </div>
+  <div class="docbox"><div class="t">Ficha de matrícula</div><div class="v">{{.Year}}</div><div class="t" style="margin-top:4px">{{if eq .Type "new"}}Aluno novo{{else}}Renovação{{end}} · {{if eq .Status "draft"}}Rascunho{{else if eq .Status "confirmed"}}Confirmada{{else}}Terminada{{end}}</div></div>
+</div>
+
+<h2>1. Dados do aluno</h2>
+<div class="box grid3">
+  <div class="f" style="grid-column: span 2"><div class="l">Nome completo</div><div class="v">{{.PupilName}}</div></div>
+  <div class="f"><div class="l">Nº do aluno</div><div class="v">{{.PupilNumber}}</div></div>
+  <div class="f"><div class="l">Sexo</div><div class="v">{{if eq .Sex "F"}}Feminino{{else}}Masculino{{end}}</div></div>
+  <div class="f"><div class="l">Data de nascimento</div><div class="v">{{.BirthDate}}</div></div>
+  <div class="f"><div class="l">Bairro</div><div class="v">{{.Neighbourhood}}</div></div>
+  <div class="f"><div class="l">Religião</div><div class="v">{{.Religion}}</div></div>
+  <div class="f"><div class="l">Orfandade</div><div class="v">{{.Orphan}}</div></div>
+  <div class="f"><div class="l">Turma / sala</div><div class="v">{{.ClassName}}</div></div>
+</div>
+
+{{if .ShowHealth}}
+<h2>2. Saúde</h2>
+<div class="box grid">
+  <div class="f"><div class="l">Doença crónica</div><div class="v">{{or .Chronic "Não"}}</div></div>
+  <div class="f"><div class="l">Alergias</div><div class="v">{{or .Allergies "Não"}}</div></div>
+  <div class="f"><div class="l">Restrições alimentares</div><div class="v">{{or .Diet "Não"}}</div></div>
+  <div class="f"><div class="l">Medicação</div><div class="v">{{or .Medication "Não"}}</div></div>
+  <div class="f"><div class="l">Médico da criança</div><div class="v">{{.Doctor}}</div></div>
+</div>
+{{end}}
+
+<h2>{{if .ShowHealth}}3{{else}}2{{end}}. Encarregados de educação</h2>
+<div class="box" style="padding:0"><table>
+  <tr><th>Nome</th><th>Parentesco</th><th>Telefone</th><th>Papel</th></tr>
+  {{range .Guardians}}<tr><td>{{.Name}}</td><td>{{.Relationship}}</td><td>{{.Phone}}</td><td>{{.Extra}}</td></tr>{{end}}
+</table></div>
+
+<div class="grid" style="gap: 0 12px">
+<div>
+<h2>Pessoas autorizadas a buscar</h2>
+<div class="box" style="padding:0"><table>
+  <tr><th>Nome</th><th>Telefone</th><th>Documento</th></tr>
+  {{range .Pickup}}<tr><td>{{.Name}}</td><td>{{.Phone}}</td><td>{{.Extra}}</td></tr>{{else}}<tr><td colspan="3" class="muted">Apenas os encarregados indicados acima.</td></tr>{{end}}
+</table></div>
+</div>
+<div>
+<h2>Contactos de emergência</h2>
+<div class="box" style="padding:0"><table>
+  <tr><th>Nome</th><th>Parentesco</th><th>Telefone</th></tr>
+  {{range .Emergency}}<tr><td>{{.Name}}</td><td>{{.Relationship}}</td><td>{{.Phone}}</td></tr>{{else}}<tr><td colspan="3" class="muted">—</td></tr>{{end}}
+</table></div>
+</div>
+</div>
+
+<h2>Serviços e valores</h2>
+<div class="box" style="padding:0"><table>
+  <tr><th>Serviço mensal (a partir de {{.StartMonth}})</th><th class="n">Valor mensal</th></tr>
+  {{range .Monthly}}<tr><td>{{.Name}}</td><td class="n">{{money .Amount}}</td></tr>{{end}}
+  <tr class="total"><td>Total mensal</td><td class="n">{{money .MonthlyTotal}}</td></tr>
+  {{if .OneOffs}}<tr><th>Taxas únicas</th><th class="n">Valor</th></tr>
+  {{range .OneOffs}}<tr><td>{{.Name}}</td><td class="n">{{money .Amount}}</td></tr>{{end}}
+  <tr class="total"><td>Total de taxas únicas</td><td class="n">{{money .OneOffTotal}}</td></tr>{{end}}
+</table></div>
+<div class="note">Mensalidades com vencimento no dia {{.DueDay}} de cada mês.{{if .PenaltyText}} Multa por atraso: {{.PenaltyText}}.{{end}}</div>
+
+<h2>Declarações e autorizações</h2>
+<div class="box" style="line-height:1.9">
+  <div><span class="check">{{if .Consents.FeesAgreement}}✓{{end}}</span>Comprometo-me a pagar as mensalidades e taxas nos prazos indicados.</div>
+  <div><span class="check">{{if .Consents.UniformBooks}}✓{{end}}</span>Tomei conhecimento de que o uniforme e os livros são obrigatórios.</div>
+  <div><span class="check">{{if .Consents.ImageUse}}✓{{end}}</span>Autorizo o uso da imagem do meu educando nas redes sociais da escola.</div>
+  <div><span class="check">{{if .Consents.EmergencyCare}}✓{{end}}</span>Autorizo a escola a procurar assistência médica de emergência para o meu educando.</div>
+</div>
+
+<div class="sign"><div>Assinatura do encarregado de educação</div><div>Assinatura da secretaria / Carimbo</div></div>
+<p class="muted" style="margin-top:8px">Impresso em {{.PrintedOn}}.</p>
+{{template "footer" .Entity}}
+</div></body></html>{{end}}

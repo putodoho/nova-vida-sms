@@ -1,0 +1,79 @@
+{{define "statements"}}<!doctype html>
+<html lang="pt"><head><meta charset="utf-8"><title>Extrato anual</title>
+{{template "css"}}
+<style>@page { size: A4; margin: 11mm 10mm; }</style>
+</head><body>
+{{range $i, $s := .}}{{if $i}}<div class="page-break"></div>{{end}}{{template "statement-body" $s}}{{end}}
+</body></html>{{end}}
+
+{{define "statement-body"}}<div class="doc">
+<div class="header">
+  <div class="brand">
+    <div class="name">{{.Entity.LegalName}}</div>
+    <div class="meta">{{.Entity.Address}}{{if .Entity.NUIT}}<br>NUIT: {{.Entity.NUIT}}{{end}}</div>
+  </div>
+  <div class="docbox"><div class="t">Extrato Nº</div><div class="v">{{.Number}}</div><div class="t" style="margin-top:4px">Data de emissão</div><div>{{.IssuedOn}}</div></div>
+</div>
+<h1>Extrato anual das mensalidades e obrigações financeiras · Ano lectivo {{.Year}}</h1>
+
+<h2>1. Dados do aluno</h2>
+<div class="box grid">
+  <div class="f"><div class="l">Aluno</div><div class="v">{{.PupilName}} <span class="muted">({{.PupilNumber}})</span></div></div>
+  <div class="f"><div class="l">Classe / turma</div><div class="v">{{.ClassName}}</div></div>
+  <div class="f"><div class="l">Encarregado responsável pelos pagamentos</div><div class="v">{{.PayerName}}</div></div>
+  <div class="f"><div class="l">Contacto</div><div class="v">{{.PayerPhone}}</div></div>
+</div>
+
+<h2>2. Serviços contratados — resumo anual</h2>
+<div class="box" style="padding:0">
+<table>
+  <tr><th>Serviço</th><th class="n">Valor mensal</th>{{if .HasVAT}}<th class="n">IVA {{.VATRate}}</th><th class="n">Mensal líquido</th>{{end}}<th class="n">Meses</th><th class="n">Total anual</th>{{if .HasVAT}}<th class="n">IVA anual</th><th class="n">Anual líquido</th>{{end}}</tr>
+  {{range .Services}}<tr><td>{{.Name}}</td><td class="n">{{money .MonthlyGross}}</td>{{if $.HasVAT}}<td class="n">{{money .MonthlyVAT}}</td><td class="n">{{money .MonthlyNet}}</td>{{end}}<td class="n">{{.Months}}</td><td class="n">{{money .AnnualGross}}</td>{{if $.HasVAT}}<td class="n">{{money .AnnualVAT}}</td><td class="n">{{money .AnnualNet}}</td>{{end}}</tr>{{end}}
+  {{with .ServiceTotal}}<tr class="total"><td>Total</td><td class="n">{{money .MonthlyGross}}</td>{{if $.HasVAT}}<td class="n">{{money .MonthlyVAT}}</td><td class="n">{{money .MonthlyNet}}</td>{{end}}<td class="n">{{.Months}}</td><td class="n">{{money .AnnualGross}}</td>{{if $.HasVAT}}<td class="n">{{money .AnnualVAT}}</td><td class="n">{{money .AnnualNet}}</td>{{end}}</tr>{{end}}
+</table>
+</div>
+{{if .HasVAT}}<div class="note">O IVA de {{.VATRate}} está incluído nos valores indicados e não é acrescido ao encarregado.</div>{{end}}
+
+{{if .OneOffs}}
+<h2>3. Taxas iniciais e outros</h2>
+<div class="box" style="padding:0">
+<table>
+  <tr><th>Descrição</th><th>Vencimento</th><th class="n">Valor</th><th class="n">Pago</th><th class="n">Por pagar</th></tr>
+  {{range .OneOffs}}<tr><td>{{.Description}}</td><td>{{.DueDate}}</td><td class="n">{{money .Amount}}</td><td class="n">{{money .Paid}}</td><td class="n">{{money .Remaining}}</td></tr>{{end}}
+</table>
+</div>
+{{end}}
+
+<h2>{{if .OneOffs}}4{{else}}3{{end}}. Controlo mensal</h2>
+<div class="box" style="padding:0">
+<table>
+  <tr><th>Nº</th><th>Mês</th><th>Vencimento</th><th class="n">Valor devido</th><th class="n">Multa</th><th class="n">Desconto</th><th class="n">Pago</th><th class="n">Por pagar</th><th>Data pag.</th><th>Recibo(s)</th><th>Estado</th></tr>
+  {{range .Months}}<tr>
+    <td>{{.N}}</td><td>{{.Month}}</td><td>{{.DueDate}}</td><td class="n">{{money .Due}}</td>
+    <td class="n">{{if .Penalty}}{{money .Penalty}}{{end}}</td><td class="n">{{if .Discount}}{{money .Discount}}{{end}}</td>
+    <td class="n">{{money .Paid}}</td><td class="n">{{money .Remaining}}</td><td>{{.PaidOn}}</td><td style="font-size:8.5px">{{.Receipts}}</td>
+    <td>{{status .Status}}</td></tr>{{end}}
+  {{with .MonthTotal}}<tr class="total"><td></td><td>Totais</td><td></td><td class="n">{{money .Due}}</td><td class="n">{{money .Penalty}}</td><td class="n">{{money .Discount}}</td><td class="n">{{money .Paid}}</td><td class="n">{{money .Remaining}}</td><td></td><td></td><td></td></tr>{{end}}
+</table>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="l">Total do ano</div><div class="v">{{money .Total}}</div></div>
+  <div class="kpi"><div class="l">Pago</div><div class="v">{{money .Paid}}</div></div>
+  <div class="kpi {{if gt .Overdue 0}}alert{{end}}"><div class="l">Em dívida</div><div class="v">{{money .Overdue}}</div></div>
+  <div class="kpi"><div class="l">Total por pagar</div><div class="v">{{money .Outstanding}}</div></div>
+</div>
+{{if gt .Credit 0}}<div class="note">Crédito disponível: <b>{{money .Credit}}</b>, aplicado automaticamente às próximas cobranças.</div>{{end}}
+
+<h2>Condições e dados para pagamento</h2>
+<div class="box">
+  <div>Vencimento: dia {{.DueDay}} de cada mês.{{if .PenaltyText}} Multa por atraso: {{.PenaltyText}}.{{end}}</div>
+  {{if .Accounts}}<div class="grid3" style="margin-top:6px">
+  {{range .Accounts}}<div class="f"><div class="l">{{.Label}}</div><div class="v" style="font-weight:400">
+    {{if .Holder}}Titular: {{.Holder}}<br>{{end}}{{if .Number}}{{if eq .Kind "bank"}}Conta{{else}}Número{{end}}: {{.Number}}<br>{{end}}{{if .NIB}}NIB: {{.NIB}}{{end}}</div></div>{{end}}
+  </div>{{end}}
+</div>
+
+<div class="sign"><div>Responsável financeiro</div><div>Assinatura / Carimbo</div></div>
+{{template "footer" .Entity}}
+</div>{{end}}
