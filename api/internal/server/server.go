@@ -17,6 +17,7 @@ import (
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/authapi"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/enrolments"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/entities"
+	"github.com/putodoho/nova-vida-sms/api/internal/modules/payments"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/pupils"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/settings"
 )
@@ -53,6 +54,7 @@ func New(d Deps) http.Handler {
 	accessH := &access.Handler{Pool: d.Pool}
 	pupilsH := &pupils.Handler{Pool: d.Pool}
 	enrolH := &enrolments.Handler{Pool: d.Pool, Loc: d.Loc, Now: d.Now}
+	paymentsH := &payments.Handler{Pool: d.Pool, Loc: d.Loc, Now: d.Now}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		authH.PublicRoutes(r)
@@ -68,6 +70,7 @@ func New(d Deps) http.Handler {
 				entitiesH.Routes(r)
 				settingsH.ScopedRoutes(r)
 				enrolH.Routes(r)
+				paymentsH.Routes(r)
 			})
 		})
 	})
