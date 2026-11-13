@@ -22,6 +22,9 @@ import (
 	"github.com/putodoho/nova-vida-sms/api/internal/server"
 )
 
+// testToday is the clock seen by the API in tests: mid-March of the 2027 school year.
+var testToday = time.Date(2027, 3, 10, 9, 0, 0, 0, time.UTC)
+
 // Integration tests need TEST_DATABASE_URL pointing to a disposable database;
 // the public schema is dropped and recreated.
 func setup(t *testing.T) (*httptest.Server, *pgxpool.Pool) {
@@ -57,7 +60,10 @@ func setup(t *testing.T) (*httptest.Server, *pgxpool.Pool) {
 		INSERT INTO user_entity (user_id, entity_id) SELECT u.id, entity.id FROM u, entity WHERE entity.code = 'primary'`, hash); err != nil {
 		t.Fatal(err)
 	}
-	h := server.New(server.Deps{Pool: pool, Log: log, Auth: &auth.Service{Pool: pool, TTL: time.Hour}})
+	h := server.New(server.Deps{
+		Pool: pool, Log: log, Auth: &auth.Service{Pool: pool, TTL: time.Hour},
+		Loc: time.UTC, Now: func() time.Time { return testToday },
+	})
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
 	return srv, pool

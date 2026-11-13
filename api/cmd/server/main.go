@@ -48,9 +48,14 @@ func run(log *slog.Logger) error {
 		}
 	}
 
+	loc, err := time.LoadLocation(cfg.TimeZone)
+	if err != nil {
+		return err
+	}
 	handler := server.New(server.Deps{
 		Pool: pool,
 		Log:  log,
+		Loc:  loc,
 		Auth: &auth.Service{Pool: pool, TTL: cfg.SessionTTL, CookieSecure: cfg.CookieSecure},
 	})
 	srv := &http.Server{

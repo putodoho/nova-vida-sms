@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Nova Vida SMS API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     School management API. Session cookie `nv_session` (set by login).
     Entity-scoped endpoints read header `X-Entity-ID` (a UUID, or `all` / absent on GET).
@@ -304,6 +304,167 @@ paths:
       summary: Delete a custom role with no users (409 system_role / role_in_use)
       responses: { "204": { description: Deleted }, "409": { $ref: "#/components/responses/Error" } }
 
+  /pupils/search:
+    get:
+      summary: Quick search by name, number or payer phone (pupils.read); max 20, latest enrolment included
+      parameters: [{ name: q, in: query, required: true, schema: { type: string, minLength: 2 } }]
+      responses: { "200": { description: OK } }
+  /pupils:
+    post:
+      summary: Create a pupil (pupils.write); number NV-<year>-<seq> assigned
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/PupilInput"
+                - type: object
+                  properties: { year: { type: integer, description: "Year used in the number; default open year" } }
+      responses: { "201": { description: Created }, "422": { $ref: "#/components/responses/Error" } }
+  /pupils/{id}:
+    parameters: [{ $ref: "#/components/parameters/ID" }]
+    get:
+      summary: Profile with guardians, pick-up persons, emergency contacts, enrolments; health only with health.read (health_alert always)
+      responses: { "200": { description: OK } }
+    put:
+      summary: Update basic data and status (active/left)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PupilInput" } } } }
+      responses: { "200": { description: Updated } }
+  /pupils/{id}/health:
+    put:
+      summary: Replace health record (pupils.write + health.read); audit records only that it changed
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                chronic_condition: { type: string }
+                allergies: { type: string }
+                diet_restrictions: { type: string }
+                medication: { type: string }
+                doctor_name: { type: string }
+                doctor_phone: { type: string }
+                notes: { type: string }
+                emergency_care_consent: { type: boolean }
+      responses: { "200": { description: Updated profile } }
+  /pupils/{id}/guardians:
+    put:
+      summary: Replace guardian links; each item links guardian_id or creates guardian inline; exactly one is_payer
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [relationship]
+                properties:
+                  guardian_id: { type: string, format: uuid }
+                  guardian: { $ref: "#/components/schemas/GuardianInput" }
+                  relationship: { type: string, enum: [mother, father, guardian, other] }
+                  is_payer: { type: boolean }
+                  receives_notices: { type: boolean }
+                  may_pick_up: { type: boolean }
+                  lives_with: { type: boolean }
+      responses: { "200": { description: Updated profile }, "422": { $ref: "#/components/responses/Error" } }
+  /pupils/{id}/pickup-persons:
+    put:
+      summary: Replace authorised pick-up persons (max 10)
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: array, items: { type: object, properties: { full_name: { type: string }, phone: { type: string }, id_doc: { type: string } } } } } } }
+      responses: { "200": { description: Updated profile } }
+  /pupils/{id}/emergency-contacts:
+    put:
+      summary: Replace emergency contacts in order (max 5)
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: array, items: { type: object, properties: { full_name: { type: string }, relationship: { type: string }, phone: { type: string } } } } } } }
+      responses: { "200": { description: Updated profile } }
+  /pupils/{id}/account:
+    get:
+      summary: Pupil account for a year in the entity scope (charges.read) — charges with derived status and summary (overdue, outstanding, paid, credit)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/Year" }]
+      responses: { "200": { description: OK } }
+
+  /guardians:
+    get:
+      summary: Search guardians by name or phone digits (max 20)
+      parameters: [{ name: q, in: query, required: true, schema: { type: string } }]
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a guardian
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/GuardianInput" } } } }
+      responses: { "201": { description: Created } }
+  /guardians/{id}:
+    parameters: [{ $ref: "#/components/parameters/ID" }]
+    get:
+      summary: Guardian with children
+      responses: { "200": { description: OK } }
+    put:
+      summary: Update a guardian
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/GuardianInput" } } } }
+      responses: { "200": { description: Updated } }
+
+  /enrolments:
+    get:
+      summary: Pupils list — enrolments of a year in scope with payer and (charges.read) overdue/outstanding. Filters year, class_id, status, q, debt=overdue; paginated
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }]
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a draft enrolment (enrolments.write); mandatory monthly fee of the class is added automatically
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/EnrolmentInput" } } } }
+      responses: { "201": { description: Draft with totals and charge preview }, "422": { $ref: "#/components/responses/Error" } }
+  /enrolments/renew:
+    post:
+      summary: Bulk returning enrolments into a year; optional services carried by fee code, re_enrolment fee added; per-pupil result
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                school_year_id: { type: string, format: uuid }
+                confirm: { type: boolean }
+                items: { type: array, items: { type: object, properties: { pupil_id: { type: string, format: uuid }, class_id: { type: string, format: uuid } } } }
+      responses: { "200": { description: "{results: [{pupil_id, enrolment_id, status: draft|confirmed|error, error}]}" } }
+  /enrolments/{id}:
+    parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+    get:
+      summary: Enrolment with services, totals and (draft) charge preview
+      responses: { "200": { description: OK } }
+    put:
+      summary: Update a draft (409 not_draft)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/EnrolmentInput" } } } }
+      responses: { "200": { description: Updated } }
+    delete:
+      summary: Delete a draft
+      responses: { "204": { description: Deleted } }
+  /enrolments/{id}/confirm:
+    post:
+      summary: Confirm and generate charges. Requires class, fees_agreement consent, one payer guardian; 409 class_full / already_enrolled / not_draft
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      responses: { "200": { description: Confirmed }, "409": { $ref: "#/components/responses/Error" }, "422": { $ref: "#/components/responses/Error" } }
+  /enrolments/{id}/withdraw:
+    post:
+      summary: End an enrolment; unpaid charges due after the date are cancelled
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [reason], properties: { date: { type: string, format: date }, reason: { type: string } } } } } }
+      responses: { "200": { description: Withdrawn } }
+  /enrolments/{id}/services:
+    put:
+      summary: Set optional monthly services from a month (removed → unpaid charges cancelled, 409 charges_paid if any paid; added → charges generated)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [monthly_fee_ids, from_month], properties: { monthly_fee_ids: { type: array, items: { type: string, format: uuid } }, from_month: { type: integer } } } } } }
+      responses: { "200": { description: Updated } }
+
 components:
   securitySchemes:
     session: { type: apiKey, in: cookie, name: nv_session }
@@ -504,3 +665,43 @@ components:
         name: { type: string }
         description: { type: string }
         permissions: { type: array, items: { type: string } }
+    PupilInput:
+      type: object
+      required: [full_name, sex, birth_date]
+      properties:
+        full_name: { type: string }
+        sex: { type: string, enum: [F, M] }
+        birth_date: { type: string, format: date }
+        neighbourhood: { type: string }
+        religion: { type: string }
+        orphan: { type: string, enum: [none, father, mother, both] }
+        home_discipline_notes: { type: string }
+        status: { type: string, enum: [active, left], description: update only }
+    GuardianInput:
+      type: object
+      required: [full_name, phone1]
+      properties:
+        full_name: { type: string }
+        phone1: { type: string }
+        phone2: { type: string }
+        email: { type: string }
+        neighbourhood: { type: string }
+        id_doc: { type: string }
+    EnrolmentInput:
+      type: object
+      required: [pupil_id, school_year_id, type]
+      properties:
+        pupil_id: { type: string, format: uuid }
+        school_year_id: { type: string, format: uuid }
+        class_id: { type: [string, "null"], format: uuid }
+        type: { type: string, enum: [new, returning] }
+        start_month: { type: integer, description: "First billing month; default first month of the calendar" }
+        monthly_fee_ids: { type: array, items: { type: string, format: uuid } }
+        one_off_fee_ids: { type: array, items: { type: string, format: uuid } }
+        consents:
+          type: object
+          properties:
+            image_use: { type: boolean }
+            fees_agreement: { type: boolean }
+            uniform_books: { type: boolean }
+            emergency_care: { type: boolean }
