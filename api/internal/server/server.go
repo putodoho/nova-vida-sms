@@ -13,8 +13,10 @@ import (
 	"github.com/putodoho/nova-vida-sms/api/internal/audit"
 	"github.com/putodoho/nova-vida-sms/api/internal/auth"
 	"github.com/putodoho/nova-vida-sms/api/internal/httpx"
+	"github.com/putodoho/nova-vida-sms/api/internal/modules/access"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/authapi"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/entities"
+	"github.com/putodoho/nova-vida-sms/api/internal/modules/settings"
 )
 
 type Deps struct {
@@ -43,15 +45,21 @@ func New(d Deps) http.Handler {
 
 	authH := &authapi.Handler{Pool: d.Pool, Auth: d.Auth}
 	entitiesH := &entities.Handler{Pool: d.Pool}
+	settingsH := &settings.Handler{Pool: d.Pool}
+	accessH := &access.Handler{Pool: d.Pool}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		authH.PublicRoutes(r)
 		r.Group(func(r chi.Router) {
 			r.Use(d.Auth.Authenticate)
 			authH.Routes(r)
+			// Global (not entity-scoped) resources.
+			settingsH.GlobalRoutes(r)
+			accessH.Routes(r)
 			r.Group(func(r chi.Router) {
 				r.Use(auth.ScopeEntity)
 				entitiesH.Routes(r)
+				settingsH.ScopedRoutes(r)
 			})
 		})
 	})

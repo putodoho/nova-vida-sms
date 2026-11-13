@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Nova Vida SMS API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     School management API. Session cookie `nv_session` (set by login).
     Entity-scoped endpoints read header `X-Entity-ID` (a UUID, or `all` / absent on GET).
@@ -138,10 +138,187 @@ paths:
       responses:
         "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/Account" } } } }
 
+  /school-years:
+    get:
+      summary: School years (global)
+      responses: { "200": { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/SchoolYearList" } } } } }
+    post:
+      summary: Create a school year (settings.manage)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/SchoolYearInput" } } } }
+      responses:
+        "201": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/SchoolYear" } } } }
+        "422": { $ref: "#/components/responses/Error" }
+  /school-years/{id}:
+    put:
+      summary: Update a school year; months and due day are frozen once charges exist (409 year_has_charges)
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/SchoolYearInput" } } } }
+      responses:
+        "200": { description: Updated, content: { application/json: { schema: { $ref: "#/components/schemas/SchoolYear" } } } }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /levels:
+    get:
+      summary: Levels of the scoped entities, with penalty rules
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      responses: { "200": { description: OK } }
+  /levels/{id}:
+    put:
+      summary: Update name and penalty rule (settings.manage)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, penalty_rule]
+              properties:
+                name: { type: string }
+                penalty_rule: { $ref: "#/components/schemas/PenaltyRule" }
+      responses: { "200": { description: Updated }, "422": { $ref: "#/components/responses/Error" } }
+
+  /classes:
+    get:
+      summary: Classes of the scoped entities for a year (default open year)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }]
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a class (settings.manage)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ClassInput" } } } }
+      responses: { "201": { description: Created }, "422": { $ref: "#/components/responses/Error" } }
+  /classes/{id}:
+    parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+    put:
+      summary: Update a class (year cannot change; capacity >= enrolled)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ClassInput" } } } }
+      responses: { "200": { description: Updated }, "422": { $ref: "#/components/responses/Error" } }
+    delete:
+      summary: Delete a class without enrolments (409 class_in_use)
+      responses: { "204": { description: Deleted }, "409": { $ref: "#/components/responses/Error" } }
+
+  /fee-items:
+    get:
+      summary: Fee catalogue for a year, with net/VAT/gross lines
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }]
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a fee item (settings.manage)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/FeeItemInput" } } } }
+      responses: { "201": { description: Created }, "422": { $ref: "#/components/responses/Error" } }
+  /fee-items/{id}:
+    put:
+      summary: Update a fee item; code, year and kind are fixed. Existing charges keep their snapshot.
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/FeeItemInput" } } } }
+      responses: { "200": { description: Updated }, "422": { $ref: "#/components/responses/Error" } }
+  /fee-items/copy-from-year:
+    post:
+      summary: Copy the entity's catalogue to another year (classes matched by name, fixed dates shifted)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [from_year, to_year], properties: { from_year: { type: integer }, to_year: { type: integer } } }
+      responses:
+        "200":
+          description: Result
+          content:
+            application/json:
+              schema: { type: object, properties: { copied: { type: integer }, skipped: { type: array, items: { type: string } } } }
+
+  /discount-types:
+    get:
+      summary: Discount types of the scoped entities
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a discount type (settings.manage)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/DiscountTypeInput" } } } }
+      responses: { "201": { description: Created }, "422": { $ref: "#/components/responses/Error" } }
+  /discount-types/{id}:
+    put:
+      summary: Update a discount type (code fixed)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/DiscountTypeInput" } } } }
+      responses: { "200": { description: Updated }, "422": { $ref: "#/components/responses/Error" } }
+
+  /staff:
+    get:
+      summary: Staff list (any signed-in user); ?q= search, ?include_inactive=true
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a staff record (users.manage)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/StaffInput" } } } }
+      responses: { "201": { description: Created } }
+  /staff/{id}:
+    put:
+      summary: Update a staff record (users.manage)
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/StaffInput" } } } }
+      responses: { "200": { description: Updated } }
+
+  /users:
+    get:
+      summary: User accounts (users.manage)
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a user (users.manage); only entities the actor can access may be granted
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/UserInput" } } } }
+      responses: { "201": { description: Created }, "422": { $ref: "#/components/responses/Error" } }
+  /users/{id}:
+    put:
+      summary: Update a user; cannot deactivate self (409 self_deactivate) or remove the last active admin (409 last_admin). Deactivation ends sessions.
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/UserInput" } } } }
+      responses: { "200": { description: Updated }, "409": { $ref: "#/components/responses/Error" } }
+  /users/{id}/reset-password:
+    post:
+      summary: Set a new password and end the user's sessions (users.manage)
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [password], properties: { password: { type: string, minLength: 8 } } } } }
+      responses: { "204": { description: Done } }
+
+  /roles:
+    get:
+      summary: Roles with permissions and user counts (users.manage)
+      responses: { "200": { description: OK } }
+    post:
+      summary: Create a role (users.manage)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/RoleInput" } } } }
+      responses: { "201": { description: Created }, "422": { $ref: "#/components/responses/Error" } }
+  /roles/{id}:
+    parameters: [{ $ref: "#/components/parameters/ID" }]
+    put:
+      summary: Update a role; the admin role always keeps every permission (409 admin_role_fixed)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/RoleInput" } } } }
+      responses: { "200": { description: Updated }, "409": { $ref: "#/components/responses/Error" } }
+    delete:
+      summary: Delete a custom role with no users (409 system_role / role_in_use)
+      responses: { "204": { description: Deleted }, "409": { $ref: "#/components/responses/Error" } }
+
 components:
   securitySchemes:
     session: { type: apiKey, in: cookie, name: nv_session }
   parameters:
+    ID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Year:
+      name: year
+      in: query
+      required: false
+      schema: { type: integer }
+      description: School year (e.g. 2027); default is the open year.
     EntityHeader:
       name: X-Entity-ID
       in: header
@@ -227,3 +404,103 @@ components:
         number: { type: string }
         nib: { type: string }
         active: { type: boolean }
+    SchoolYear:
+      allOf:
+        - $ref: "#/components/schemas/SchoolYearInput"
+        - type: object
+          properties: { id: { type: string, format: uuid } }
+    SchoolYearList:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/SchoolYear" } }
+        total: { type: integer }
+    SchoolYearInput:
+      type: object
+      required: [year, starts_on, ends_on, billing_months, due_day, status]
+      properties:
+        year: { type: integer }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+        billing_months: { type: array, items: { type: integer, minimum: 1, maximum: 12 } }
+        due_day: { type: integer, minimum: 1, maximum: 28 }
+        status: { type: string, enum: [planning, open, closed] }
+    PenaltyRule:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [none, percent, fixed_tiers] }
+        rate_bp: { type: integer, description: "percent: basis points of the remaining amount (500 = 5%)" }
+        grace_days: { type: integer }
+        mode: { type: string, enum: [replace, cumulative] }
+        tiers:
+          type: array
+          items:
+            type: object
+            properties:
+              after_day: { type: integer, description: "Day of month after which the tier applies (5 = from the 6th)" }
+              amount: { type: integer, description: centavos }
+    ClassInput:
+      type: object
+      required: [level_id, school_year_id, name, capacity]
+      properties:
+        level_id: { type: string, format: uuid }
+        school_year_id: { type: string, format: uuid }
+        name: { type: string }
+        grade: { type: [integer, "null"] }
+        capacity: { type: integer }
+        room: { type: string }
+        teacher_staff_id: { type: [string, "null"], format: uuid }
+    FeeItemInput:
+      type: object
+      required: [school_year_id, code, name, kind, amount, vat_mode]
+      properties:
+        school_year_id: { type: string, format: uuid }
+        code: { type: string, pattern: "^[a-z][a-z0-9_]{1,39}$" }
+        name: { type: string }
+        kind: { type: string, enum: [monthly, one_off] }
+        amount: { type: integer, description: centavos }
+        vat_mode: { type: string, enum: [none, included, added] }
+        vat_rate_bp: { type: integer }
+        due_rule: { type: object, description: "one_off: {date: YYYY-MM-DD} or {on_enrolment: true}; monthly: {}" }
+        mandatory: { type: boolean }
+        active: { type: boolean }
+        class_ids: { type: array, items: { type: string, format: uuid }, description: "Empty = every class" }
+    DiscountTypeInput:
+      type: object
+      required: [code, name, mode, value, fee_item_codes]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        mode: { type: string, enum: [percent, fixed] }
+        value: { type: integer, description: "basis points (percent) or centavos (fixed)" }
+        fee_item_codes: { type: array, items: { type: string } }
+        requires_approval: { type: boolean }
+        active: { type: boolean }
+    StaffInput:
+      type: object
+      required: [full_name]
+      properties:
+        full_name: { type: string }
+        function: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        active: { type: boolean }
+    UserInput:
+      type: object
+      required: [display_name, role_ids, entity_ids]
+      properties:
+        login: { type: string, description: "create only; stored lower-case" }
+        display_name: { type: string }
+        staff_id: { type: [string, "null"], format: uuid }
+        password: { type: string, description: create only }
+        active: { type: boolean }
+        role_ids: { type: array, items: { type: string, format: uuid } }
+        entity_ids: { type: array, items: { type: string, format: uuid } }
+    RoleInput:
+      type: object
+      required: [name, permissions]
+      properties:
+        code: { type: string, description: create only }
+        name: { type: string }
+        description: { type: string }
+        permissions: { type: array, items: { type: string } }
