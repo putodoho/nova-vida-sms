@@ -34,10 +34,10 @@ type PenaltyTier struct {
 // PenaltyRule is stored as JSON on each level.
 type PenaltyRule struct {
 	Type      string        `json:"type"`
-	RateBP    int           `json:"rate_bp,omitempty"`    // percent: 500 = 5% of the remaining amount
-	GraceDays int           `json:"grace_days"`           // days after the due date before a penalty applies
-	Mode      string        `json:"mode,omitempty"`       // fixed_tiers
-	Tiers     []PenaltyTier `json:"tiers,omitempty"`      // fixed_tiers, ordered by AfterDay
+	RateBP    int           `json:"rate_bp,omitempty"` // percent: 500 = 5% of the remaining amount
+	GraceDays int           `json:"grace_days"`        // days after the due date before a penalty applies
+	Mode      string        `json:"mode,omitempty"`    // fixed_tiers
+	Tiers     []PenaltyTier `json:"tiers,omitempty"`   // fixed_tiers, ordered by AfterDay
 }
 
 // ParsePenaltyRule decodes and validates a rule.
