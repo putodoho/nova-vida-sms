@@ -17,11 +17,14 @@ import (
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/authapi"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/charges"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/discounts"
+	"github.com/putodoho/nova-vida-sms/api/internal/modules/documents"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/enrolments"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/entities"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/payments"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/pupils"
+	"github.com/putodoho/nova-vida-sms/api/internal/modules/reports"
 	"github.com/putodoho/nova-vida-sms/api/internal/modules/settings"
+	"github.com/putodoho/nova-vida-sms/api/internal/pdf"
 )
 
 type Deps struct {
@@ -30,6 +33,7 @@ type Deps struct {
 	Log  *slog.Logger
 	Loc  *time.Location   // school time zone
 	Now  func() time.Time // optional clock override (tests)
+	PDF  pdf.Renderer     // HTML → PDF (Gotenberg)
 }
 
 // New returns the API handler mounted at /api.
@@ -59,6 +63,8 @@ func New(d Deps) http.Handler {
 	paymentsH := &payments.Handler{Pool: d.Pool, Loc: d.Loc, Now: d.Now}
 	chargesH := &charges.Handler{Pool: d.Pool, Loc: d.Loc, Now: d.Now}
 	discountsH := &discounts.Handler{Pool: d.Pool}
+	reportsH := &reports.Handler{Pool: d.Pool, Loc: d.Loc, Now: d.Now}
+	documentsH := &documents.Handler{Pool: d.Pool, Renderer: d.PDF, Loc: d.Loc, Now: d.Now}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		authH.PublicRoutes(r)
@@ -77,6 +83,8 @@ func New(d Deps) http.Handler {
 				paymentsH.Routes(r)
 				chargesH.Routes(r)
 				discountsH.Routes(r)
+				documentsH.Routes(r)
+				reportsH.Routes(r)
 			})
 		})
 	})

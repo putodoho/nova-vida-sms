@@ -1,0 +1,39 @@
+{{define "receipt"}}<!doctype html>
+<html lang="pt"><head><meta charset="utf-8"><title>Recibo {{.Number}}</title>
+{{template "css"}}
+<style>@page { size: A5; margin: 12mm 11mm; }</style>
+</head><body><div class="doc">
+{{if .Cancelled}}<div class="void">ANULADO</div>{{end}}
+<div class="header">
+  <div class="brand">
+    <div class="name">{{.Entity.LegalName}}</div>
+    <div class="meta">{{.Entity.Address}}{{if .Entity.NUIT}}<br>NUIT: {{.Entity.NUIT}}{{end}}</div>
+  </div>
+  <div class="docbox"><div class="t">Recibo Nº</div><div class="v">{{.Number}}</div><div class="t" style="margin-top:4px">Data do pagamento</div><div>{{.PaidOn}}</div></div>
+</div>
+
+<p style="font-size:11.5px; line-height:1.55; margin: 4px 0 10px">
+  Recebemos de <b>{{if .PayerName}}{{.PayerName}}{{else}}—{{end}}</b>, encarregado de educação de
+  <b>{{.PupilName}}</b> ({{.PupilNumber}}{{if .ClassName}}, {{.ClassName}}{{end}}), a quantia de
+  <b>{{money .Amount}}</b> ({{.AmountWords}}), referente a:
+</p>
+
+<table>
+  <tr><th>Descrição</th><th class="n">Valor</th></tr>
+  {{range .Lines}}<tr><td>{{.Description}}</td><td class="n">{{money .Amount}}</td></tr>{{end}}
+  {{if gt .Credit 0}}<tr><td>Crédito para pagamentos futuros</td><td class="n">{{money .Credit}}</td></tr>{{end}}
+  <tr class="total"><td>Total recebido</td><td class="n">{{money .Amount}}</td></tr>
+</table>
+
+<div class="grid" style="margin-top:10px">
+  <div class="f"><div class="l">Forma de pagamento</div><div class="v">{{.Method}}{{if and .AccountLabel (ne .AccountLabel .Method)}} · {{.AccountLabel}}{{end}}</div></div>
+  <div class="f"><div class="l">Referência</div><div class="v">{{if .Reference}}{{.Reference}}{{else}}—{{end}}</div></div>
+  <div class="f"><div class="l">Em dívida após este pagamento</div><div class="v">{{money .Overdue}}</div></div>
+  <div class="f"><div class="l">Total por pagar no ano</div><div class="v">{{money .Outstanding}}</div></div>
+</div>
+{{if .Cancelled}}<div class="note"><b>Recibo anulado.</b> Motivo: {{.CancelReason}}</div>{{end}}
+
+<div class="sign"><div>Recebido por: {{.ReceivedBy}}</div><div>Assinatura / Carimbo</div></div>
+<p class="muted" style="margin-top:10px">Emitido em {{.IssuedAt}}. Documento processado por computador.</p>
+{{template "footer" .Entity}}
+</div></body></html>{{end}}

@@ -1,0 +1,43 @@
+{{define "css"}}
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, "Helvetica Neue", sans-serif; color: #1c2a3a; font-size: 10.5px; margin: 0; }
+  .doc { padding: 0; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #f4c542; padding-bottom: 8px; margin-bottom: 12px; }
+  .brand .name { font-size: 17px; font-weight: 700; color: #173b67; letter-spacing: .2px; }
+  .brand .meta { color: #4a5868; margin-top: 3px; line-height: 1.45; }
+  .docbox { border: 1.5px solid #173b67; border-radius: 6px; padding: 6px 10px; min-width: 190px; }
+  .docbox .t { font-size: 9px; text-transform: uppercase; letter-spacing: .6px; color: #6b7888; }
+  .docbox .v { font-size: 13px; font-weight: 700; color: #173b67; }
+  h1 { font-size: 14px; color: #173b67; margin: 4px 0 10px; text-transform: uppercase; letter-spacing: .4px; }
+  h2 { font-size: 10.5px; color: #fff; background: #173b67; margin: 12px 0 0; padding: 4px 8px; text-transform: uppercase; letter-spacing: .4px; border-radius: 4px 4px 0 0; }
+  .box { border: 1px solid #d5dde7; border-top: none; padding: 6px 8px; border-radius: 0 0 4px 4px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px 16px; }
+  .f .l { color: #6b7888; font-size: 9px; }
+  .f .v { font-weight: 600; min-height: 13px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #eaf2fb; color: #173b67; font-size: 9px; text-align: left; padding: 4px 5px; border-bottom: 1px solid #c9d6e6; }
+  td { padding: 3.5px 5px; border-bottom: 1px solid #e4e9ef; vertical-align: top; }
+  .n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  tr.total td { font-weight: 700; background: #fff7dc; border-top: 1.5px solid #173b67; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .kpi { border: 1px solid #d5dde7; border-radius: 5px; padding: 6px 8px; }
+  .kpi .l { font-size: 9px; color: #6b7888; text-transform: uppercase; letter-spacing: .4px; }
+  .kpi .v { font-size: 13px; font-weight: 700; color: #173b67; margin-top: 2px; }
+  .kpi.alert .v { color: #bf3d45; }
+  .note { background: #fff7dc; border-left: 3px solid #f4c542; padding: 5px 8px; margin-top: 8px; }
+  .muted { color: #6b7888; }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 8.5px; font-weight: 700; }
+  .b-paid { background: #e7f6ef; color: #15845a; } .b-overdue { background: #fff0f0; color: #bf3d45; }
+  .b-upcoming, .b-partial { background: #fff5df; color: #a96d08; }
+  .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 28px; }
+  .sign div { border-top: 1px solid #1c2a3a; padding-top: 3px; text-align: center; color: #4a5868; }
+  .footer { margin-top: 14px; text-align: center; color: #173b67; font-style: italic; border-top: 1px solid #f4c542; padding-top: 5px; }
+  .void { position: fixed; top: 38%; left: 0; right: 0; text-align: center; font-size: 72px; font-weight: 800; color: rgba(191, 61, 69, .18); transform: rotate(-24deg); letter-spacing: 8px; }
+  .page-break { page-break-after: always; break-after: page; }
+  .check { display: inline-block; width: 10px; height: 10px; border: 1px solid #1c2a3a; margin-right: 5px; vertical-align: -1px; text-align: center; font-size: 9px; line-height: 9px; }
+</style>
+{{end}}
+
+{{define "footer"}}{{if .Motto}}<div class="footer">{{.Motto}}</div>{{end}}{{end}}

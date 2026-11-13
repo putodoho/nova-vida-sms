@@ -10,9 +10,9 @@ Keep this file current at the end of every work session: what is done, what is n
 | 2 | Settings API: years, levels/penalty rules, classes, fee catalogue, discount types, roles and users | Done (PR #3) |
 | 3 | Pupils, guardians, enrolment, charge generation, renewal | Done (PR #4) |
 | 4 | Payments: preview, allocation, receipts, numbering, cancellation | Done (PR #5) |
-| 5 | Penalties job, waivers, discount requests | Done (PR `feat/m5-penalties-discounts`) |
-| 6 | PDFs (Gotenberg), dashboard, reports, Excel export | Next |
-| 7 | Web app (React) | |
+| 5 | Penalties job, waivers, discount requests | Done (PR #6) |
+| 6 | PDFs (Gotenberg), dashboard, reports, Excel export | Done (PR `feat/m6-documents-reports`) |
+| 7 | Web app (React) | Next |
 | 8 | Import of existing data, backups, go-live | |
 
 ## Milestone 1 — done
@@ -60,6 +60,15 @@ Keep this file current at the end of every work session: what is done, what is n
 - Discount requests (`internal/modules/discounts`): request (default mode/value from the type, from a month), pending requests show what approval would grant, approve/reject with note; types without approval apply at once; only an administrator may decide their own request.
 - Penalty charges carry the parent's due date, so a payment settles the penalty right before the fee it belongs to.
 
+## Milestone 6 — done
+
+- `money.Words`: amounts in Portuguese words for receipts ("cinco mil e trinta e cinco meticais").
+- `internal/report`: one table format for JSON and Excel; dependency-free XLSX writer (title, frozen header, filter, MT money format, dd/mm/yyyy dates, totals row) — opens in Excel, LibreOffice and openpyxl.
+- `internal/pdf`: Gotenberg client (`preferCssPageSize`, page size from CSS `@page`).
+- Documents (`internal/modules/documents`, Go `html/template`, styled with the prototype's tokens): receipt (A5, amount in words, ANULADO watermark), annual statement (A4, modelled on the school's template: services with VAT, one-off fees, monthly control with penalties/discounts/receipts/status, totals, payment details), enrolment form (A4, consents, signatures). `?format=html` returns the HTML (preview and browser printing); default is PDF. Statements are numbered (`EXT-2027-00001`) and stored as snapshots; bulk issue per class returns one document.
+- Reports (`internal/modules/reports`, `reports.read`): dashboard; income by month/method/account; arrears per pupil; pupils per class; discounts; penalties; VAT — each with `?format=xlsx`.
+- Samples rendered with Chromium (same engine as Gotenberg) in `docs/samples/`.
+
 ## Decisions taken during build (differences from the design doc)
 
 - **No sqlc / goose**: queries are hand-written with pgx in each module; migrations use a ~60-line embedded runner. Fewer tools to install; same safety.
@@ -70,6 +79,7 @@ Keep this file current at the end of every work session: what is done, what is n
 - A partly paid charge past its due date shows as **overdue** (the money is late); `partial` is only for charges not yet due.
 - Billing starts at the enrolment's `start_month` chosen by the receptionist; months before it are never charged.
 - Bulk renewal with `confirm: true` records the fees consent on behalf of the guardian (the paper renewal form is the evidence).
+- The VAT report lists VAT as charged and discounts separately; whether discounts reduce the VAT base is for the accountant to confirm.
 - Penalty rules apply only to monthly fees ("5% sobre o valor mensal em atraso"), never to one-off items.
 - Class changes during the year are not supported yet (would need tuition re-pricing); withdraw and re-enrol, or adjust services.
 

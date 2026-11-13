@@ -62,7 +62,7 @@ func setup(t *testing.T) (*httptest.Server, *pgxpool.Pool) {
 	}
 	h := server.New(server.Deps{
 		Pool: pool, Log: log, Auth: &auth.Service{Pool: pool, TTL: time.Hour},
-		Loc: time.UTC, Now: func() time.Time { return testToday },
+		Loc: time.UTC, Now: func() time.Time { return testToday }, PDF: stubPDF{},
 	})
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
@@ -253,4 +253,33 @@ func TestReceivingAccounts(t *testing.T) {
 	if list.Total != 2 { // seeded cash + bank
 		t.Fatalf("accounts: %d", list.Total)
 	}
+}
+
+// stubPDF stands in for Gotenberg: it returns a fake PDF wrapping the HTML.
+type stubPDF struct{}
+
+func (stubPDF) PDF(_ context.Context, html []byte) ([]byte, error) {
+	return append([]byte("%PDF-stub\n"), html...), nil
+}
+
+// raw performs a request and returns status, content type and body.
+func (c *client) raw(method, path string, body any) (int, string, []byte) {
+	c.t.Helper()
+	var r io.Reader
+	if body != nil {
+		b, _ := json.Marshal(body)
+		r = bytes.NewReader(b)
+	}
+	req, _ := http.NewRequest(method, c.base+path, r)
+	req.Header.Set("Content-Type", "application/json")
+	if c.entity != "" {
+		req.Header.Set(auth.EntityHeader, c.entity)
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		c.t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	out, _ := io.ReadAll(resp.Body)
+	return resp.StatusCode, resp.Header.Get("Content-Type"), out
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/putodoho/nova-vida-sms/api/internal/config"
 	"github.com/putodoho/nova-vida-sms/api/internal/db"
 	"github.com/putodoho/nova-vida-sms/api/internal/jobs"
+	"github.com/putodoho/nova-vida-sms/api/internal/pdf"
 	"github.com/putodoho/nova-vida-sms/api/internal/server"
 )
 
@@ -57,6 +58,7 @@ func run(log *slog.Logger) error {
 		Pool: pool,
 		Log:  log,
 		Loc:  loc,
+		PDF:  &pdf.Gotenberg{URL: cfg.GotenbergURL},
 		Auth: &auth.Service{Pool: pool, TTL: cfg.SessionTTL, CookieSecure: cfg.CookieSecure},
 	})
 	if cfg.RunJobs {
