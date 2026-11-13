@@ -16,6 +16,7 @@ import (
 	"github.com/putodoho/nova-vida-sms/api/internal/auth"
 	"github.com/putodoho/nova-vida-sms/api/internal/config"
 	"github.com/putodoho/nova-vida-sms/api/internal/db"
+	"github.com/putodoho/nova-vida-sms/api/internal/jobs"
 	"github.com/putodoho/nova-vida-sms/api/internal/server"
 )
 
@@ -58,6 +59,17 @@ func run(log *slog.Logger) error {
 		Loc:  loc,
 		Auth: &auth.Service{Pool: pool, TTL: cfg.SessionTTL, CookieSecure: cfg.CookieSecure},
 	})
+	if cfg.RunJobs {
+		// Penalties are charged daily at 01:00 school time (and once at start-up to catch up).
+		jobs.StartDaily(ctx, pool, loc, 1, "penalties", func(ctx context.Context, today time.Time) error {
+			res, err := jobs.RunPenalties(ctx, pool, today, nil)
+			if err == nil {
+				log.Info("penalties charged", "pupils", res.Pupils, "penalties", res.Penalties, "amount", int64(res.Amount))
+			}
+			return err
+		})
+	}
+
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           handler,

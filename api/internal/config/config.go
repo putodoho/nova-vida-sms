@@ -18,6 +18,7 @@ type Config struct {
 	FilesDir       string        // uploads and generated PDFs
 	TimeZone       string        // school time zone for due dates and penalties
 	MigrateOnStart bool
+	RunJobs        bool // daily penalty job in this process
 }
 
 // Load reads configuration from the environment, applying defaults suitable
@@ -31,6 +32,7 @@ func Load() (Config, error) {
 		FilesDir:       get("FILES_DIR", "./data/files"),
 		TimeZone:       get("APP_TIMEZONE", "Africa/Maputo"),
 		MigrateOnStart: getBool("MIGRATE_ON_START", true),
+		RunJobs:        getBool("RUN_JOBS", true),
 	}
 	c.CookieSecure = getBool("COOKIE_SECURE", c.Env == "prod")
 
