@@ -9,9 +9,9 @@ Keep this file current at the end of every work session: what is done, what is n
 | 1 | Foundation: schema, auth, RBAC, audit, entity scope, seed, compose | Done (PR #1, #2) |
 | 2 | Settings API: years, levels/penalty rules, classes, fee catalogue, discount types, roles and users | Done (PR #3) |
 | 3 | Pupils, guardians, enrolment, charge generation, renewal | Done (PR #4) |
-| 4 | Payments: preview, allocation, receipts, numbering, cancellation | Done (PR `feat/m4-payments`) |
-| 5 | Penalties job, waivers, discount requests | Next |
-| 6 | PDFs (Gotenberg), dashboard, reports, Excel export | |
+| 4 | Payments: preview, allocation, receipts, numbering, cancellation | Done (PR #5) |
+| 5 | Penalties job, waivers, discount requests | Done (PR `feat/m5-penalties-discounts`) |
+| 6 | PDFs (Gotenberg), dashboard, reports, Excel export | Next |
 | 7 | Web app (React) | |
 | 8 | Import of existing data, backups, go-live | |
 
@@ -52,6 +52,14 @@ Keep this file current at the end of every work session: what is done, what is n
 - Payments (`internal/modules/payments`): preview without writing; create (method ↔ receiving account must match, reference required except cash, no future date, max one year back, duplicate reference refused, pupil must be enrolled in the entity); family payment split between children (one receipt each, shared group id); list with filters, sum and totals by method; detail with allocations and pupil balance; cancel with reason (receipt keeps its number).
 - Receipt numbers `REC-2027-00001` (primary) and `REC-JI-2027-00001` (preschool), gap-free under concurrency (tested with 10 parallel payments, race detector on). A year's series is created automatically on its first receipt; the receipt year is the payment date's year.
 
+## Milestone 5 — done
+
+- `billing.Penalties`: percent (5% of what is still owed, once, after due + grace) and fixed tiers (replace: total = highest tier reached; cumulative: sum); a tier already charged or waived is never charged again. `billing.DiscountAmount`: percent of gross or fixed, capped at what is unpaid. Table tests for both school rules.
+- `internal/jobs`: `RunPenalties` (per pupil, under the ledger lock, idempotent, credit applied to new penalties) and `StartDaily` (01:00 school time + once at start-up, Postgres advisory lock so one instance runs it; `RUN_JOBS=false` disables it).
+- Charges (`internal/modules/charges`): arrears list with filters and aging buckets (1–30, 31–60, 61–90, 90+ days); cancel a fee (its penalties go with it, released money re-applied); waive a penalty; run penalties on demand.
+- Discount requests (`internal/modules/discounts`): request (default mode/value from the type, from a month), pending requests show what approval would grant, approve/reject with note; types without approval apply at once; only an administrator may decide their own request.
+- Penalty charges carry the parent's due date, so a payment settles the penalty right before the fee it belongs to.
+
 ## Decisions taken during build (differences from the design doc)
 
 - **No sqlc / goose**: queries are hand-written with pgx in each module; migrations use a ~60-line embedded runner. Fewer tools to install; same safety.
@@ -62,6 +70,7 @@ Keep this file current at the end of every work session: what is done, what is n
 - A partly paid charge past its due date shows as **overdue** (the money is late); `partial` is only for charges not yet due.
 - Billing starts at the enrolment's `start_month` chosen by the receptionist; months before it are never charged.
 - Bulk renewal with `confirm: true` records the fees consent on behalf of the guardian (the paper renewal form is the evidence).
+- Penalty rules apply only to monthly fees ("5% sobre o valor mensal em atraso"), never to one-off items.
 - Class changes during the year are not supported yet (would need tuition re-pricing); withdraw and re-enrol, or adjust services.
 
 ## Notes for whoever continues

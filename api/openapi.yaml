@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Nova Vida SMS API
-  version: 0.4.0
+  version: 0.5.0
   description: |
     School management API. Session cookie `nv_session` (set by login).
     Entity-scoped endpoints read header `X-Entity-ID` (a UUID, or `all` / absent on GET).
@@ -514,6 +514,65 @@ paths:
       parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
       requestBody: { required: true, content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 5 } } } } } }
       responses: { "200": { description: Cancelled }, "409": { description: already_cancelled } }
+
+  /charges:
+    get:
+      summary: Charges and arrears (charges.read). Filters year, month, class_id, kind, status (open|overdue|paid|cancelled), min_days, q; aging buckets of overdue amounts for the filter
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }]
+      responses: { "200": { description: "{items[], total, aging{d1_30, d31_60, d61_90, over_90, total, pupils}}" } }
+  /charges/{id}/cancel:
+    post:
+      summary: Cancel a fee or one-off charge (charges.cancel) with its penalties; money already allocated is re-applied or becomes credit
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string } } } } } }
+      responses: { "204": { description: Cancelled }, "409": { description: "wrong_kind / already_cancelled" } }
+  /penalties/{id}/waive:
+    post:
+      summary: Waive a penalty (penalties.waive); a waived penalty is never charged again
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string } } } } } }
+      responses: { "204": { description: Waived } }
+  /penalties/run:
+    post:
+      summary: Run the penalty job now for the entities in scope (settings.manage); idempotent. It also runs daily at 01:00 school time.
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      responses: { "200": { description: "{pupils, penalties, amount}" } }
+
+  /discount-requests:
+    get:
+      summary: Discount requests (charges.read); filters status, enrolment_id; pending ones show the amount approval would grant now
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      responses: { "200": { description: OK } }
+    post:
+      summary: Request a discount (discounts.request); types without approval are applied at once
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enrolment_id, discount_type_id, reason]
+              properties:
+                enrolment_id: { type: string, format: uuid }
+                discount_type_id: { type: string, format: uuid }
+                mode: { type: string, enum: [percent, fixed], description: "default: the type's" }
+                value: { type: integer, description: "default: the type's" }
+                from_month: { type: integer, description: "default: enrolment start month" }
+                reason: { type: string }
+      responses: { "201": { description: Created } }
+  /discount-requests/{id}/approve:
+    post:
+      summary: Approve (discounts.approve); discounts written on unpaid monthly charges of the type's fee codes from from_month. Only admins may decide their own request (409 own_request)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      requestBody: { content: { application/json: { schema: { type: object, properties: { note: { type: string } } } } } }
+      responses: { "200": { description: Approved }, "409": { description: already_decided / own_request } }
+  /discount-requests/{id}/reject:
+    post:
+      summary: Reject with a note (discounts.approve)
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/ID" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [note], properties: { note: { type: string } } } } } }
+      responses: { "200": { description: Rejected } }
 
 components:
   securitySchemes:
