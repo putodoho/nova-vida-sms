@@ -20,7 +20,6 @@ interface NavItem {
   label: string
   icon: React.ElementType
   perm?: Permission
-  soon?: boolean
 }
 
 const nav: NavItem[] = [
@@ -31,10 +30,10 @@ const nav: NavItem[] = [
   { to: '/cobrancas', label: pt.nav.charges, icon: Receipt, perm: 'charges.read' },
   { to: '/descontos', label: pt.nav.discounts, icon: Percent, perm: 'charges.read' },
   { to: '/documentos', label: pt.nav.documents, icon: FileText, perm: 'documents.generate' },
-  { to: '/turmas', label: pt.nav.classes, icon: BookOpen, perm: 'classes.read', soon: true },
+  { to: '/turmas', label: pt.nav.classes, icon: BookOpen, perm: 'classes.read' },
   { to: '/relatorios', label: pt.nav.reports, icon: BarChart3, perm: 'reports.read' },
-  { to: '/funcionarios', label: pt.nav.staff, icon: ShieldCheck, perm: 'users.manage', soon: true },
-  { to: '/configuracoes', label: pt.nav.settings, icon: Settings, perm: 'settings.manage', soon: true },
+  { to: '/funcionarios', label: pt.nav.staff, icon: ShieldCheck, perm: 'users.manage' },
+  { to: '/configuracoes', label: pt.nav.settings, icon: Settings, perm: 'settings.manage' },
 ]
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
@@ -66,7 +65,6 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           >
             <n.icon className="h-[18px] w-[18px] shrink-0" />
             <span className="flex-1 truncate">{n.label}</span>
-            {n.soon && <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white/50">7b</span>}
           </NavLink>
         ))}
       </nav>

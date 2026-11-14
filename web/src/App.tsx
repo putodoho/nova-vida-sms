@@ -7,7 +7,7 @@ import { PaymentSheetProvider } from '@/features/payments/PaymentSheet'
 import { LoginPage } from '@/pages/Login'
 import { PupilsPage } from '@/pages/Pupils'
 import { PupilProfilePage } from '@/pages/PupilProfile'
-import { ComingSoonPage, NotFoundPage } from '@/pages/Placeholders'
+import { NotFoundPage } from '@/pages/Placeholders'
 import { EnrolmentsPage } from '@/pages/Enrolments'
 import { EnrolmentWizardPage } from '@/pages/EnrolmentWizard'
 import { RenewalPage } from '@/pages/Renewal'
@@ -17,6 +17,9 @@ import { PaymentsPage } from '@/pages/Payments'
 import { DocumentsPage } from '@/pages/Documents'
 import { ReportsPage } from '@/pages/Reports'
 import { GuardianProfilePage } from '@/pages/GuardianProfile'
+import { ClassDetailPage, ClassesPage } from '@/pages/Classes'
+import { SettingsPage } from '@/pages/Settings'
+import { StaffPage } from '@/pages/Staff'
 
 // The dashboard pulls in the charting library; load it only when needed.
 const DashboardPage = React.lazy(() => import('@/pages/Dashboard').then((m) => ({ default: m.DashboardPage })))
@@ -62,9 +65,10 @@ export function App() {
             <Route path="documentos" element={<DocumentsPage />} />
             <Route path="relatorios" element={<ReportsPage />} />
             <Route path="encarregados/:id" element={<GuardianProfilePage />} />
-            {['turmas', 'funcionarios', 'configuracoes'].map((p) => (
-              <Route key={p} path={p} element={<ComingSoonPage />} />
-            ))}
+            <Route path="turmas" element={<ClassesPage />} />
+            <Route path="turmas/:id" element={<ClassDetailPage />} />
+            <Route path="configuracoes" element={<SettingsPage />} />
+            <Route path="funcionarios" element={<StaffPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
