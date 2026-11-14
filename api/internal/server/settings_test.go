@@ -137,6 +137,7 @@ func TestLevelsAndClasses(t *testing.T) {
 type feeOut struct {
 	ID       string   `json:"id"`
 	Code     string   `json:"code"`
+	Active   bool     `json:"active"`
 	ClassIDs []string `json:"class_ids"`
 	Lines    struct {
 		Net   int64 `json:"net"`
@@ -194,11 +195,19 @@ func TestFeeCatalogue(t *testing.T) {
 		FROM class WHERE entity_id = $1`, primary); err != nil {
 		t.Fatal(err)
 	}
-	var res struct {
-		Copied  int      `json:"copied"`
-		Skipped []string `json:"skipped"`
+	// 2028 has no 4th-grade class yet.
+	if _, err := pool.Exec(context.Background(), `
+		DELETE FROM class WHERE school_year_id = (SELECT id FROM school_year WHERE year = 2028)
+		  AND name IN (SELECT c.name FROM fee_item f JOIN fee_item_class fc ON fc.fee_item_id = f.id JOIN class c ON c.id = fc.class_id
+		               WHERE f.code = 'tuition_4' AND f.school_year_id = (SELECT id FROM school_year WHERE year = 2027))`); err != nil {
+		t.Fatal(err)
 	}
-	if s := c.do("POST", "/api/v1/fee-items/copy-from-year", map[string]int{"from_year": 2027, "to_year": 2028}, &res); s != 200 || res.Copied != 5 {
+	var res struct {
+		Copied   int      `json:"copied"`
+		Skipped  []string `json:"skipped"`
+		Inactive []string `json:"inactive"`
+	}
+	if s := c.do("POST", "/api/v1/fee-items/copy-from-year", map[string]int{"from_year": 2027, "to_year": 2028}, &res); s != 200 || res.Copied != 5 || len(res.Inactive) != 1 || res.Inactive[0] != "tuition_4" {
 		t.Fatalf("copy: %d %+v", s, res)
 	}
 	if s := c.do("POST", "/api/v1/fee-items/copy-from-year", map[string]int{"from_year": 2027, "to_year": 2028}, &res); s != 200 || res.Copied != 0 || len(res.Skipped) != 5 {
@@ -207,8 +216,12 @@ func TestFeeCatalogue(t *testing.T) {
 	var fees28 list[feeOut]
 	c.do("GET", "/api/v1/fee-items?year=2028", nil, &fees28)
 	for _, f := range fees28.Items {
-		if f.Code == "tuition_4" && len(f.ClassIDs) != 1 {
-			t.Fatalf("2028 tuition_4 class scope: %+v", f)
+		if f.Code == "tuition_1_3" && (len(f.ClassIDs) != 5 || !f.Active) {
+			t.Fatalf("2028 tuition_1_3 class scope: %+v", f)
+		}
+		// Without its class it must not become a second tuition for every class.
+		if f.Code == "tuition_4" && (f.Active || len(f.ClassIDs) != 0) {
+			t.Fatalf("2028 tuition_4 should be inactive: %+v", f)
 		}
 	}
 }

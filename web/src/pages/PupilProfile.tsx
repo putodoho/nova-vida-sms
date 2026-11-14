@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { AlertTriangle, ArrowLeft, FileText, HeartPulse, Phone, Printer, Receipt, ShieldCheck, Wallet } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ClipboardPlus, FileText, LogOut, Pencil, HeartPulse, Phone, Printer, Receipt, ShieldCheck, Wallet } from 'lucide-react'
 import { api, openDocument } from '@/lib/api'
 import { age, date, dateTime, money } from '@/lib/format'
 import { pt } from '@/lib/i18n/pt'
@@ -12,6 +12,7 @@ import {
   Avatar, Badge, Button, Card, CardHeader, ChargeStatus, EmptyState, EntityTag, ErrorState, Skeleton, Table, Tabs, TabsContent, TabsList, Td, Th,
 } from '@/components/ui'
 import { usePaymentSheet } from '@/features/payments/PaymentSheet'
+import { WithdrawDialog } from '@/features/enrolment/WithdrawDialog'
 import type { Enrolment, List, Payment, PupilAccount, PupilProfile, StatementRef } from '@/api/types'
 
 const orphanLabel: Record<string, string> = { none: 'Não', father: 'Órfão de pai', mother: 'Órfão de mãe', both: 'Órfão de pai e mãe' }
@@ -30,6 +31,8 @@ export function PupilProfilePage() {
   const { year, entity, entities, can } = useSession()
   const payment = usePaymentSheet()
   const qc = useQueryClient()
+  const navigate = useNavigate()
+  const [withdrawing, setWithdrawing] = React.useState(false)
 
   const profile = useQuery({ queryKey: ['pupil', id], queryFn: () => api.get<PupilProfile>(`/pupils/${id}`) })
   const p = profile.data
@@ -119,7 +122,22 @@ export function PupilProfilePage() {
               <Printer className="h-4 w-4" /> Ficha de matrícula
             </Button>
           )}
+          {can('enrolments.write') && entity && current?.status === 'draft' && current.entity_id === entity.id && (
+            <Button onClick={() => navigate(`/matriculas/${current.id}`)}><ClipboardPlus className="h-4 w-4" /> Continuar matrícula</Button>
+          )}
+          {can('enrolments.write') && entity && !current && p.status === 'active' && (
+            <Button onClick={() => navigate(`/matriculas/nova?pupil=${p.id}`)}><ClipboardPlus className="h-4 w-4" /> Matricular em {year?.year}</Button>
+          )}
+          {can('pupils.write') && (
+            <Button variant="ghost" onClick={() => navigate(`/alunos/${p.id}/editar`)}><Pencil className="h-4 w-4" /> Editar dados</Button>
+          )}
+          {can('enrolments.write') && entity && current?.status === 'confirmed' && current.entity_id === entity.id && (
+            <Button variant="ghost" className="text-bad hover:bg-bad-tint sm:ml-auto" onClick={() => setWithdrawing(true)}><LogOut className="h-4 w-4" /> Registar desistência</Button>
+          )}
         </div>
+        {current && withdrawing && (
+          <WithdrawDialog enrolmentId={current.id} pupilId={p.id} pupilName={p.full_name} open={withdrawing} onOpenChange={setWithdrawing} />
+        )}
       </Card>
 
       {p.health_alert && (

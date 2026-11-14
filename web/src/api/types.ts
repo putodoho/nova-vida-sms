@@ -20,7 +20,7 @@ export interface SchoolYear { id: string; year: number; starts_on: string; ends_
 
 export interface ClassItem { id: string; entity_id: string; name: string; grade: number | null; capacity: number; enrolled: number; teacher_name: string | null; school_year_id: string; level_id: string; room: string }
 
-export interface FeeItem { id: string; code: string; name: string; kind: 'monthly' | 'one_off'; amount: number; mandatory: boolean; active: boolean; class_ids: string[]; lines: { net: number; vat: number; gross: number } }
+export interface FeeItem { id: string; code: string; name: string; kind: 'monthly' | 'one_off'; amount: number; mandatory: boolean; active: boolean; class_ids: string[]; due_rule: { on_enrolment?: boolean; date?: string } | null; lines: { net: number; vat: number; gross: number } }
 
 export interface Account { id: string; entity_id: string; kind: 'cash' | 'bank' | 'mpesa' | 'emola'; label: string; holder: string; number: string; nib: string; active: boolean }
 
@@ -89,3 +89,11 @@ export interface Dashboard {
   recent_payments: { id: string; receipt_no: string; pupil_name: string; amount: number; method: string; paid_on: string }[]
   pending_discounts: number
 }
+
+export interface Pupil { id: string; number: string; full_name: string; sex: 'F' | 'M'; birth_date: string; neighbourhood: string; religion: string; orphan: 'none' | 'father' | 'mother' | 'both'; photo_path: string; home_discipline_notes: string; status: 'active' | 'left' }
+
+export interface Guardian { id: string; full_name: string; phone1: string; phone2: string; email: string; neighbourhood: string; id_doc: string }
+
+export interface GuardianDetail extends Guardian { children: { pupil_id: string; number: string; full_name: string; relationship: string; is_payer: boolean }[] }
+
+export interface RenewResult { pupil_id: string; enrolment_id: string | null; status: 'draft' | 'confirmed' | 'error'; error?: string }
