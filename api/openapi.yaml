@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Nova Vida SMS API
-  version: 0.6.0
+  version: 0.6.1
   description: |
     School management API. Session cookie `nv_session` (set by login).
     Entity-scoped endpoints read header `X-Entity-ID` (a UUID, or `all` / absent on GET).
@@ -229,7 +229,7 @@ paths:
           description: Result
           content:
             application/json:
-              schema: { type: object, properties: { copied: { type: integer }, skipped: { type: array, items: { type: string } } } }
+              schema: { type: object, properties: { copied: { type: integer }, skipped: { type: array, items: { type: string } }, inactive: { type: array, items: { type: string }, description: "Class-scoped items copied inactive because none of their classes exist in the target year" } } }
 
   /discount-types:
     get:

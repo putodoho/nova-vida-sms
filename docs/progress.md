@@ -14,7 +14,10 @@ Keep this file current at the end of every work session: what is done, what is n
 | 6 | PDFs (Gotenberg), dashboard, reports, Excel export | Done (PR #7) |
 | 7a | Web app: foundation, shell, login, dashboard, pupils, profile, payments | Done (PR `feat/m7a-web-foundation`) |
 | — | Hosting: CI on PRs, deploy on merge (GHCR images → VPS behind Nginx), `docs/deploy-vps.md` | Done (PR `ci/pipeline-vps`) |
-| 7b | Web app: enrolment wizard, renewal, charges, discounts, classes, documents, reports, users, settings | Next |
+| 7b-1 | Web app: enrolment wizard, drafts, renewal, withdrawal, edit pupil data | Done (PR `feat/m7b1-enrolment`) |
+| 7b-2 | Web app: arrears and charges, penalty waivers, discount requests and approvals | Next |
+| 7b-3 | Web app: payments list, documents (class statements, receipts), reports with Excel export | |
+| 7b-4 | Web app: classes, school years, fee catalogue, penalty rules, discount types, users and roles | |
 | 8 | Import of existing data, backups, go-live | |
 
 ## Milestone 1 — done
@@ -80,6 +83,15 @@ Keep this file current at the end of every work session: what is done, what is n
 - API: `/auth/me` returns the school's `today`; `FAKE_TODAY` (non-prod) pins the date for demos/training.
 - Docker: `caddy` now builds the web app (`web/Dockerfile`).
 - Verified in Chromium at 1440 px and 390 px against the real API with demo data (no horizontal scroll on mobile, no console errors).
+
+## Milestone 7b-1 — done
+
+- Enrolment wizard (`/matriculas/nova`, `src/pages/EnrolmentWizard.tsx`, steps in `src/features/enrolment/`): pupil (with duplicate hints that reuse an existing record), health (Yes/No + "which?", doctor; only with `health.read`), guardians (search existing so siblings share the guardian and payer; new ones inline; exactly one payer; contact edits update the guardian), pick-up and emergency contacts, class (seats left) + first billing month + optional services with live monthly/annual totals, one-off fees and consents, review with the charges confirming will create and the amount due now; confirm, or confirm and record payment; print the enrolment form.
+- Every step saves on "Seguinte": the pupil exists after step 1, the draft after step 5; the URL carries pupil/enrolment and step, so a reload or a draft opened later resumes (drafts open on the review).
+- `/matriculas`: drafts / confirmed / withdrawn with counts; continue or delete a draft (the pupil record stays).
+- `/matriculas/renovacao`: pick last year's class (either school, so the last preschool class can move to the 1st grade), see who is already re-enrolled, pick the new class (seats left), confirm now or create drafts; per-pupil result.
+- Pupil profile: "Continuar matrícula", "Matricular em <ano>", "Editar dados" (wizard steps 1–4 for that pupil), "Registar desistência" (date + reason).
+- API fix: copying the fee catalogue to a new year now copies a class-scoped item **inactive** when none of its classes exist in the target year (it used to lose its scope and apply to every class, e.g. a second mandatory tuition). The response lists them in `inactive`.
 
 ## Hosting — done
 

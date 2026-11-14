@@ -8,6 +8,9 @@ import { LoginPage } from '@/pages/Login'
 import { PupilsPage } from '@/pages/Pupils'
 import { PupilProfilePage } from '@/pages/PupilProfile'
 import { ComingSoonPage, NotFoundPage } from '@/pages/Placeholders'
+import { EnrolmentsPage } from '@/pages/Enrolments'
+import { EnrolmentWizardPage } from '@/pages/EnrolmentWizard'
+import { RenewalPage } from '@/pages/Renewal'
 
 // The dashboard pulls in the charting library; load it only when needed.
 const DashboardPage = React.lazy(() => import('@/pages/Dashboard').then((m) => ({ default: m.DashboardPage })))
@@ -42,7 +45,12 @@ export function App() {
             <Route index element={<Home />} />
             <Route path="alunos" element={<PupilsPage />} />
             <Route path="alunos/:id" element={<PupilProfilePage />} />
-            {['matriculas', 'pagamentos', 'cobrancas', 'descontos', 'documentos', 'turmas', 'relatorios', 'funcionarios', 'configuracoes'].map((p) => (
+            <Route path="alunos/:id/editar" element={<EnrolmentWizardPage key="edit" mode="edit" />} />
+            <Route path="matriculas" element={<EnrolmentsPage />} />
+            <Route path="matriculas/nova" element={<EnrolmentWizardPage key="enrol" mode="new" />} />
+            <Route path="matriculas/renovacao" element={<RenewalPage />} />
+            <Route path="matriculas/:id" element={<EnrolmentWizardPage key="enrol" mode="draft" />} />
+            {['pagamentos', 'cobrancas', 'descontos', 'documentos', 'turmas', 'relatorios', 'funcionarios', 'configuracoes'].map((p) => (
               <Route key={p} path={p} element={<ComingSoonPage />} />
             ))}
             <Route path="*" element={<NotFoundPage />} />

@@ -275,13 +275,16 @@ type copyRequest struct {
 }
 
 type copyResult struct {
-	Copied  int      `json:"copied"`
-	Skipped []string `json:"skipped"` // codes already present in the target year
+	Copied   int      `json:"copied"`
+	Skipped  []string `json:"skipped"`  // codes already present in the target year
+	Inactive []string `json:"inactive"` // class-scoped items whose classes do not exist in the target year
 }
 
 // copyFees copies the entity's catalogue between years. Class scopes are
 // matched by class name in the target year; one-off fixed due dates move by
-// the difference in years.
+// the difference in years. A class-scoped item none of whose classes exist in
+// the target year is copied inactive: without a scope it would apply to every
+// class (e.g. a second mandatory tuition for everyone).
 func (h *Handler) copyFees(w http.ResponseWriter, r *http.Request) error {
 	entityID, err := auth.SingleEntity(r.Context())
 	if err != nil {
@@ -294,7 +297,7 @@ func (h *Handler) copyFees(w http.ResponseWriter, r *http.Request) error {
 	if req.FromYear == req.ToYear {
 		return httpx.Validation(httpx.Fields{"to_year": "Escolha um ano diferente."})
 	}
-	res := copyResult{Skipped: []string{}}
+	res := copyResult{Skipped: []string{}, Inactive: []string{}}
 	err = db.WithTx(r.Context(), h.Pool, func(tx pgx.Tx) error {
 		var fromID, toID uuid.UUID
 		err := tx.QueryRow(r.Context(), `
@@ -336,11 +339,18 @@ func (h *Handler) copyFees(w http.ResponseWriter, r *http.Request) error {
 				return err
 			}
 			if len(it.ClassIDs) > 0 {
-				if _, err := tx.Exec(r.Context(), `
+				tag, err := tx.Exec(r.Context(), `
 					INSERT INTO fee_item_class (fee_item_id, class_id)
 					SELECT $1, tc.id FROM class sc JOIN class tc ON tc.name = sc.name AND tc.entity_id = sc.entity_id
-					WHERE sc.id = ANY($2) AND tc.school_year_id = $3`, newID, it.ClassIDs, toID); err != nil {
+					WHERE sc.id = ANY($2) AND tc.school_year_id = $3`, newID, it.ClassIDs, toID)
+				if err != nil {
 					return err
+				}
+				if tag.RowsAffected() == 0 {
+					if _, err := tx.Exec(r.Context(), `UPDATE fee_item SET active = false WHERE id = $1`, newID); err != nil {
+						return err
+					}
+					res.Inactive = append(res.Inactive, it.Code)
 				}
 			}
 			res.Copied++

@@ -26,7 +26,7 @@ interface NavItem {
 const nav: NavItem[] = [
   { to: '/', label: pt.nav.dashboard, icon: LayoutDashboard, perm: 'reports.read' },
   { to: '/alunos', label: pt.nav.pupils, icon: Users, perm: 'pupils.read' },
-  { to: '/matriculas', label: pt.nav.enrolments, icon: ClipboardList, perm: 'enrolments.write', soon: true },
+  { to: '/matriculas', label: pt.nav.enrolments, icon: ClipboardList, perm: 'enrolments.write' },
   { to: '/pagamentos', label: pt.nav.payments, icon: Wallet, perm: 'charges.read', soon: true },
   { to: '/cobrancas', label: pt.nav.charges, icon: Receipt, perm: 'charges.read', soon: true },
   { to: '/descontos', label: pt.nav.discounts, icon: Percent, perm: 'charges.read', soon: true },
