@@ -54,7 +54,15 @@ func run(log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	var now func() time.Time
+	if cfg.FakeToday != "" {
+		day, _ := time.ParseInLocation(time.DateOnly, cfg.FakeToday, loc)
+		start := time.Now()
+		now = func() time.Time { return day.Add(10*time.Hour + time.Since(start)) }
+		log.Warn("FAKE_TODAY is set: the API uses a fixed date", "today", cfg.FakeToday)
+	}
 	handler := server.New(server.Deps{
+		Now:  now,
 		Pool: pool,
 		Log:  log,
 		Loc:  loc,

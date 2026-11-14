@@ -19,6 +19,9 @@ type Config struct {
 	TimeZone       string        // school time zone for due dates and penalties
 	MigrateOnStart bool
 	RunJobs        bool // daily penalty job in this process
+	// FakeToday pins "today" (YYYY-MM-DD) for demos and training environments.
+	// Never set it in production.
+	FakeToday string
 }
 
 // Load reads configuration from the environment, applying defaults suitable
@@ -33,6 +36,7 @@ func Load() (Config, error) {
 		TimeZone:       get("APP_TIMEZONE", "Africa/Maputo"),
 		MigrateOnStart: getBool("MIGRATE_ON_START", true),
 		RunJobs:        getBool("RUN_JOBS", true),
+		FakeToday:      os.Getenv("FAKE_TODAY"),
 	}
 	c.CookieSecure = getBool("COOKIE_SECURE", c.Env == "prod")
 
@@ -42,6 +46,14 @@ func Load() (Config, error) {
 	}
 	c.SessionTTL = ttl
 
+	if c.FakeToday != "" {
+		if _, err := time.Parse(time.DateOnly, c.FakeToday); err != nil {
+			return c, fmt.Errorf("FAKE_TODAY: %w", err)
+		}
+		if c.Env == "prod" {
+			return c, fmt.Errorf("FAKE_TODAY must not be set in prod")
+		}
+	}
 	if c.DatabaseURL == "" {
 		return c, fmt.Errorf("DATABASE_URL is required")
 	}

@@ -54,7 +54,7 @@ func New(d Deps) http.Handler {
 		httpx.JSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	authH := &authapi.Handler{Pool: d.Pool, Auth: d.Auth}
+	authH := &authapi.Handler{Pool: d.Pool, Auth: d.Auth, Loc: d.Loc, Now: d.Now}
 	entitiesH := &entities.Handler{Pool: d.Pool}
 	settingsH := &settings.Handler{Pool: d.Pool}
 	accessH := &access.Handler{Pool: d.Pool}
