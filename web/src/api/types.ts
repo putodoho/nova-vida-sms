@@ -97,3 +97,28 @@ export interface Guardian { id: string; full_name: string; phone1: string; phone
 export interface GuardianDetail extends Guardian { children: { pupil_id: string; number: string; full_name: string; relationship: string; is_payer: boolean }[] }
 
 export interface RenewResult { pupil_id: string; enrolment_id: string | null; status: 'draft' | 'confirmed' | 'error'; error?: string }
+
+export interface ChargeRow {
+  id: string; entity_id: string; pupil_id: string; pupil_name: string; pupil_number: string; class_name: string | null; payer_phone: string | null
+  kind: 'monthly' | 'one_off' | 'penalty'; period_month: number | null; description: string; due_date: string
+  gross: number; discount: number; paid: number; remaining: number; days_overdue: number; status: 'paid' | 'partial' | 'overdue' | 'upcoming' | 'cancelled'
+}
+export interface Aging { d1_30: number; d31_60: number; d61_90: number; over_90: number; total: number; pupils: number }
+export interface ChargeList { items: ChargeRow[]; total: number; aging: Aging }
+
+export interface PupilArrears {
+  pupil_id: string; entity_id: string; number: string; full_name: string; class_name: string | null
+  payer_name: string | null; payer_phone: string | null; payer_phone2: string | null
+  overdue: number; outstanding: number; charges: number; oldest_due: string; days_overdue: number
+}
+
+export interface DiscountType { id: string; entity_id: string; code: string; name: string; mode: 'percent' | 'fixed'; value: number; fee_item_codes: string[]; requires_approval: boolean; active: boolean }
+
+export interface DiscountRequest {
+  id: string; entity_id: string; enrolment_id: string; pupil_id: string; pupil_name: string; class_name: string | null
+  discount_type_id: string; discount_type: string; fee_item_codes: string[]; mode: 'percent' | 'fixed'; value: number
+  scope: { from_month: number }; reason: string; status: 'pending' | 'approved' | 'rejected'
+  requested_by: string; decided_by: string | null; decided_at: string | null; decision_note: string; created_at: string
+  /** pending: what approval would grant now; approved: what was granted */
+  estimated_amount: number
+}

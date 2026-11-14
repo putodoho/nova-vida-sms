@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Nova Vida SMS API
-  version: 0.6.1
+  version: 0.7.0
   description: |
     School management API. Session cookie `nv_session` (set by login).
     Entity-scoped endpoints read header `X-Entity-ID` (a UUID, or `all` / absent on GET).
@@ -520,6 +520,11 @@ paths:
       summary: Charges and arrears (charges.read). Filters year, month, class_id, kind, status (open|overdue|paid|cancelled), min_days, q; aging buckets of overdue amounts for the filter
       parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }]
       responses: { "200": { description: "{items[], total, aging{d1_30, d31_60, d61_90, over_90, total, pupils}}" } }
+  /charges/arrears:
+    get:
+      summary: "Overdue debt per pupil (charges.read): the calling list. Filters year, class_id, min_days (oldest debt at least N days), q (pupil, number or payer). ?format=xlsx downloads it"
+      parameters: [{ $ref: "#/components/parameters/EntityHeader" }, { $ref: "#/components/parameters/Year" }]
+      responses: { "200": { description: "{items[{pupil_id, entity_id, number, full_name, class_name, payer_name, payer_phone, payer_phone2, overdue, outstanding, charges, oldest_due, days_overdue}], total} or an .xlsx file" } }
   /charges/{id}/cancel:
     post:
       summary: Cancel a fee or one-off charge (charges.cancel) with its penalties; money already allocated is re-applied or becomes credit
