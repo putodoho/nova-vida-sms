@@ -13,6 +13,7 @@ Keep this file current at the end of every work session: what is done, what is n
 | 5 | Penalties job, waivers, discount requests | Done (PR #6) |
 | 6 | PDFs (Gotenberg), dashboard, reports, Excel export | Done (PR #7) |
 | 7a | Web app: foundation, shell, login, dashboard, pupils, profile, payments | Done (PR `feat/m7a-web-foundation`) |
+| — | Hosting: CI on PRs, deploy on merge (GHCR images → VPS behind Nginx), `docs/deploy-vps.md` | Done (PR `ci/pipeline-vps`) |
 | 7b | Web app: enrolment wizard, renewal, charges, discounts, classes, documents, reports, users, settings | Next |
 | 8 | Import of existing data, backups, go-live | |
 
@@ -79,6 +80,12 @@ Keep this file current at the end of every work session: what is done, what is n
 - API: `/auth/me` returns the school's `today`; `FAKE_TODAY` (non-prod) pins the date for demos/training.
 - Docker: `caddy` now builds the web app (`web/Dockerfile`).
 - Verified in Chromium at 1440 px and 390 px against the real API with demo data (no horizontal scroll on mobile, no console errors).
+
+## Hosting — done
+
+- `.github/workflows/ci.yml` (pull requests, and first job of Deploy): gofmt, go vet, `go test -p 1 -race` against a Postgres service; web `npm ci` + `npm run build` (includes the type-check).
+- `.github/workflows/deploy.yml` (push to main / manual): builds `ghcr.io/putodoho/nova-vida-sms-{api,web}:<sha>` and `:latest`, copies `deploy/docker-compose.vps.yml` + `Caddyfile` to `/opt/nova-vida`, pulls, restarts, seeds (idempotent) and checks `/api/healthz`.
+- On the VPS the web container listens only on `127.0.0.1:8088`; the existing Nginx terminates TLS (certbot) for `schoolsys.orisystems.site`. Demo runs with `APP_ENV=demo` and `FAKE_TODAY=2027-05-12`.
 
 ## Decisions taken during build (differences from the design doc)
 

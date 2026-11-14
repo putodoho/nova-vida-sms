@@ -54,3 +54,7 @@ docker compose run --rm --entrypoint /app/cli api create-admin -login admin@nova
 ```
 
 The `caddy` service builds the React app (`web/Dockerfile`), serves it and proxies `/api` to the API. For a local HTTP test set `SITE_ADDRESS=:80` and `COOKIE_SECURE=false`.
+
+## Hosted demo
+
+Every merge to `main` is tested, built into GHCR images and deployed to the VPS. Setup and operations: [`docs/deploy-vps.md`](docs/deploy-vps.md).
