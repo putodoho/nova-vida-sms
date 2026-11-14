@@ -1,9 +1,15 @@
 """Fill a running API with realistic demo data (dev only). Usage: python3 demo_data.py [http://localhost:8080/api/v1] — needs admin@novavida.co.mz / Secret123!."""
-import json, random, sys, urllib.request, http.cookiejar
+import json, os, random, ssl, sys, urllib.request, http.cookiejar
 random.seed(7)
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8080/api/v1"
 jar = http.cookiejar.CookieJar()
-op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+handlers = [urllib.request.HTTPCookieProcessor(jar)]
+# Caddy's local certificate for "localhost" is not trusted by Python: skip verification for localhost only.
+if BASE.startswith("https://localhost") or BASE.startswith("https://127.0.0.1"):
+    handlers.append(urllib.request.HTTPSHandler(context=ssl._create_unverified_context()))
+op = urllib.request.build_opener(*handlers)
+LOGIN = os.environ.get("DEMO_LOGIN", "admin@novavida.co.mz")
+PASSWORD = os.environ.get("DEMO_PASSWORD", "Secret123!")
 ENT = {"h": None}
 
 def call(method, path, body=None, ent=True):
@@ -17,7 +23,7 @@ def call(method, path, body=None, ent=True):
     except urllib.error.HTTPError as e:
         raise SystemExit(f"{method} {path}: {e.code} {e.read().decode()}")
 
-me = call("POST", "/auth/login", {"login": "admin@novavida.co.mz", "password": "Secret123!"}, ent=False)
+me = call("POST", "/auth/login", {"login": LOGIN, "password": PASSWORD}, ent=False)
 ents = {e["code"]: e["id"] for e in me["entities"]}
 years = call("GET", "/school-years", ent=False)["items"]
 year = next(y for y in years if y["year"] == 2027)["id"]
