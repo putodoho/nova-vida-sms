@@ -25,6 +25,7 @@ Read before working:
 - Billing logic (generation, penalties, allocation) lives in `api/internal/billing` as pure functions with table tests.
 
 ## Conventions
-- Code, comments, docs, commit messages: English. UI copy: Portuguese (Mozambique), in `web/src/lib/i18n/pt.ts`.
+- Code, comments, docs, commit messages: English. UI copy: Portuguese (Mozambique). Labels shared across screens (navigation, statuses, methods, errors) live in `web/src/lib/i18n/pt.ts`; one-off screen copy may stay in the component.
 - Display formats: `5.035,00 MT`, dates `dd/mm/yyyy`.
-- Update `api/openapi.yaml` in the same change as any endpoint change; regenerate web types.
+- Update `api/openapi.yaml` in the same change as any endpoint change, and the matching types in `web/src/api/types.ts`.
+- Web: `npx tsc --noEmit -p .` and `npm run build` in `web/` must pass. Money is centavos end to end; format only with `web/src/lib/format.ts`.

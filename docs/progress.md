@@ -11,8 +11,9 @@ Keep this file current at the end of every work session: what is done, what is n
 | 3 | Pupils, guardians, enrolment, charge generation, renewal | Done (PR #4) |
 | 4 | Payments: preview, allocation, receipts, numbering, cancellation | Done (PR #5) |
 | 5 | Penalties job, waivers, discount requests | Done (PR #6) |
-| 6 | PDFs (Gotenberg), dashboard, reports, Excel export | Done (PR `feat/m6-documents-reports`) |
-| 7 | Web app (React) | Next |
+| 6 | PDFs (Gotenberg), dashboard, reports, Excel export | Done (PR #7) |
+| 7a | Web app: foundation, shell, login, dashboard, pupils, profile, payments | Done (PR `feat/m7a-web-foundation`) |
+| 7b | Web app: enrolment wizard, renewal, charges, discounts, classes, documents, reports, users, settings | Next |
 | 8 | Import of existing data, backups, go-live | |
 
 ## Milestone 1 — done
@@ -69,6 +70,16 @@ Keep this file current at the end of every work session: what is done, what is n
 - Reports (`internal/modules/reports`, `reports.read`): dashboard; income by month/method/account; arrears per pupil; pupils per class; discounts; penalties; VAT — each with `?format=xlsx`.
 - Samples rendered with Chromium (same engine as Gotenberg) in `docs/samples/`.
 
+## Milestone 7a — done
+
+- `web/`: Vite + React 18 + TypeScript + Tailwind 3 (tokens from the prototype) + Radix primitives + TanStack Query + Recharts + cmdk + sonner. Self-hosted Inter font.
+- `src/lib`: API client (session cookie, `X-Entity-ID`, `ApiError` with field errors), formatters (centavos ↔ `5.035,00 MT`, dd/mm/yyyy), session provider (user, permissions, active entity incl. "Todas" read-only, school year), shared Portuguese labels.
+- Screens: login; app shell (sidebar filtered by permissions, entity and year switchers, Ctrl+K pupil search, global "Registar pagamento", mobile drawer and floating button); dashboard; pupils list (filters, balances, mobile cards); pupil profile (balance header, health alert strip, tabs: summary, account, payments, guardians, health, documents, history; issue statement, enrolment form); payment sheet (pupil picker with balances, quick amounts, method ↔ account, reference, live allocation preview, receipt PDF/print).
+- Receptionists (no `reports.read`) land on the pupils list.
+- API: `/auth/me` returns the school's `today`; `FAKE_TODAY` (non-prod) pins the date for demos/training.
+- Docker: `caddy` now builds the web app (`web/Dockerfile`).
+- Verified in Chromium at 1440 px and 390 px against the real API with demo data (no horizontal scroll on mobile, no console errors).
+
 ## Decisions taken during build (differences from the design doc)
 
 - **No sqlc / goose**: queries are hand-written with pgx in each module; migrations use a ~60-line embedded runner. Fewer tools to install; same safety.
@@ -81,6 +92,7 @@ Keep this file current at the end of every work session: what is done, what is n
 - Bulk renewal with `confirm: true` records the fees consent on behalf of the guardian (the paper renewal form is the evidence).
 - The VAT report lists VAT as charged and discounts separately; whether discounts reduce the VAT base is for the accountant to confirm.
 - Penalty rules apply only to monthly fees ("5% sobre o valor mensal em atraso"), never to one-off items.
+- Web types are hand-written in `web/src/api/types.ts` (the OpenAPI responses are not fully typed yet).
 - Class changes during the year are not supported yet (would need tuition re-pricing); withdraw and re-enrol, or adjust services.
 
 ## Notes for whoever continues

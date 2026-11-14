@@ -21,6 +21,18 @@ COOKIE_SECURE=false go run ./cmd/server
 curl localhost:8080/api/healthz
 ```
 
+## Run the web app locally
+
+Requirements: Node 22. With the API running on :8080:
+
+```sh
+cd web
+npm install
+npm run dev          # http://localhost:5173 (proxies /api to :8080)
+```
+
+To see realistic screens before the school year starts, run the API with `FAKE_TODAY=2027-05-12` (any non-prod environment) so due dates and penalties behave as in May 2027.
+
 ## Tests
 
 ```sh
@@ -41,4 +53,4 @@ docker compose run --rm --entrypoint /app/cli api seed
 docker compose run --rm --entrypoint /app/cli api create-admin -login admin@novavida.co.mz -password 'change-me-now'
 ```
 
-Caddy serves the web build from `web/dist` and proxies `/api` to the API. For a local HTTP test set `SITE_ADDRESS=:80` and `COOKIE_SECURE=false`.
+The `caddy` service builds the React app (`web/Dockerfile`), serves it and proxies `/api` to the API. For a local HTTP test set `SITE_ADDRESS=:80` and `COOKIE_SECURE=false`.

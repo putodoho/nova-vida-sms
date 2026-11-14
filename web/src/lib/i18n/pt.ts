@@ -1,0 +1,56 @@
+// Shared Portuguese (Mozambique) labels: navigation, statuses, methods and
+// other terms used on more than one screen.
+
+export const pt = {
+  app: { name: 'Nova Vida', subtitle: 'Gestão Escolar' },
+  nav: {
+    dashboard: 'Painel',
+    pupils: 'Alunos',
+    enrolments: 'Matrículas',
+    payments: 'Pagamentos',
+    charges: 'Cobranças e dívidas',
+    discounts: 'Descontos',
+    documents: 'Documentos',
+    classes: 'Turmas',
+    reports: 'Relatórios',
+    staff: 'Funcionários e utilizadores',
+    settings: 'Configurações',
+    audit: 'Auditoria',
+  },
+  actions: {
+    recordPayment: 'Registar pagamento',
+    save: 'Guardar',
+    cancel: 'Cancelar',
+    confirm: 'Confirmar',
+    close: 'Fechar',
+    search: 'Pesquisar',
+    export: 'Exportar Excel',
+    print: 'Imprimir',
+    logout: 'Terminar sessão',
+    newEnrolment: 'Nova matrícula',
+  },
+  chargeStatus: {
+    paid: 'Pago',
+    partial: 'Parcial',
+    overdue: 'Em atraso',
+    upcoming: 'Por vencer',
+    cancelled: 'Anulado',
+  } as Record<string, string>,
+  enrolmentStatus: { draft: 'Rascunho', confirmed: 'Matriculado', withdrawn: 'Desistiu' } as Record<string, string>,
+  methods: { cash: 'Numerário', bank: 'Banco (BIM)', mpesa: 'M-Pesa', emola: 'e-Mola' } as Record<string, string>,
+  relationship: { mother: 'Mãe', father: 'Pai', guardian: 'Encarregado', other: 'Outro' } as Record<string, string>,
+  months: ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+  monthsShort: ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+  account: {
+    overdue: 'Em dívida',
+    outstanding: 'Total por pagar',
+    paid: 'Pago',
+    credit: 'Crédito',
+    upToDate: 'Em dia',
+  },
+  errors: {
+    generic: 'Ocorreu um erro. Tente novamente.',
+    network: 'Sem ligação ao servidor.',
+    forbidden: 'Não tem permissão para esta acção.',
+  },
+}

@@ -1,0 +1,91 @@
+// Response types of the API (mirrors the Go structs; see api/openapi.yaml).
+// Money fields are integer centavos.
+
+export type Permission =
+  | 'pupils.read' | 'pupils.write' | 'health.read' | 'enrolments.write' | 'charges.read' | 'charges.cancel'
+  | 'payments.create' | 'payments.cancel' | 'discounts.request' | 'discounts.approve' | 'penalties.waive'
+  | 'documents.generate' | 'reports.read' | 'classes.read' | 'settings.manage' | 'users.manage' | 'audit.read'
+
+export interface EntityRef { id: string; code: 'primary' | 'preschool'; short_name: string; legal_name: string }
+
+export interface Me {
+  user: { id: string; login: string; display_name: string; roles: string[]; permissions: Permission[]; entity_ids: string[] }
+  entities: EntityRef[]
+  today: string
+}
+
+export interface List<T> { items: T[]; total: number }
+
+export interface SchoolYear { id: string; year: number; starts_on: string; ends_on: string; billing_months: number[]; due_day: number; status: 'planning' | 'open' | 'closed' }
+
+export interface ClassItem { id: string; entity_id: string; name: string; grade: number | null; capacity: number; enrolled: number; teacher_name: string | null; school_year_id: string; level_id: string; room: string }
+
+export interface FeeItem { id: string; code: string; name: string; kind: 'monthly' | 'one_off'; amount: number; mandatory: boolean; active: boolean; class_ids: string[]; lines: { net: number; vat: number; gross: number } }
+
+export interface Account { id: string; entity_id: string; kind: 'cash' | 'bank' | 'mpesa' | 'emola'; label: string; holder: string; number: string; nib: string; active: boolean }
+
+export interface EnrolmentListItem {
+  enrolment_id: string; entity_id: string; pupil_id: string; number: string; full_name: string; birth_date: string
+  class_id: string | null; class_name: string | null; status: 'draft' | 'confirmed' | 'withdrawn'; type: 'new' | 'returning'
+  payer_name: string | null; payer_phone: string | null; health_alert: boolean; overdue?: number; outstanding?: number
+}
+
+export interface PupilSearchHit { id: string; number: string; full_name: string; birth_date: string; status: string; last_year: number | null; last_class: string | null; last_entity_id: string | null; payer_name: string | null; payer_phone: string | null }
+
+export interface GuardianLink { guardian_id: string; full_name: string; phone1: string; phone2: string; email: string; neighbourhood: string; relationship: string; is_payer: boolean; receives_notices: boolean; may_pick_up: boolean; lives_with: boolean }
+
+export interface Health { chronic_condition: string; allergies: string; diet_restrictions: string; medication: string; doctor_name: string; doctor_phone: string; notes: string; emergency_care_consent_at: string | null }
+
+export interface PupilProfile {
+  id: string; number: string; full_name: string; sex: 'F' | 'M'; birth_date: string; neighbourhood: string; religion: string
+  orphan: 'none' | 'father' | 'mother' | 'both'; photo_path: string; home_discipline_notes: string; status: 'active' | 'left'
+  health: Health | null; health_alert: boolean; guardians: GuardianLink[]
+  pickup_persons: { full_name: string; phone: string; id_doc: string }[]
+  emergency_contacts: { position: number; full_name: string; relationship: string; phone: string }[]
+  enrolments: { id: string; entity_id: string; entity_name: string; year: number; class_name: string | null; type: string; status: string }[]
+}
+
+export interface AccountCharge {
+  id: string; entity_id: string; kind: 'monthly' | 'one_off' | 'penalty'; period_month: number | null; description: string; due_date: string
+  gross: number; vat: number; discount: number; payable: number; paid: number; remaining: number
+  status: 'paid' | 'partial' | 'overdue' | 'upcoming' | 'cancelled'; parent_charge_id: string | null; cancel_reason?: string
+}
+
+export interface PupilAccount { pupil_id: string; year: number; summary: { overdue: number; outstanding: number; paid: number; credit: number; total: number }; charges: AccountCharge[] }
+
+export interface Enrolment {
+  id: string; entity_id: string; school_year_id: string; year: number; pupil_id: string; pupil_name: string; pupil_number: string
+  class_id: string | null; class_name: string | null; type: 'new' | 'returning'; status: 'draft' | 'confirmed' | 'withdrawn'; start_month: number
+  consents: { image_use: boolean; fees_agreement: boolean; uniform_books: boolean; emergency_care: boolean }
+  services: { fee_item_id: string; code: string; name: string; amount: number; mandatory: boolean; from_month: number; to_month: number | null }[]
+  one_off_fee_ids: string[]
+  totals: { monthly_gross: number; monthly_net: number; monthly_vat: number; annual_gross: number; one_off_gross: number; months: number }
+  preview: { description: string; kind: string; period_month: number; due_date: string; lines: { net: number; vat: number; gross: number } }[]
+}
+
+export interface AllocationLine { charge_id: string; description: string; due_date: string; kind: string; amount: number; active: boolean }
+
+export interface Payment {
+  id: string; entity_id: string; pupil_id: string; pupil_name: string; pupil_number: string; payment_group_id: string | null; receipt_no: string
+  paid_on: string; amount: number; method: 'cash' | 'bank' | 'mpesa' | 'emola'; receiving_account_id: string | null; account_label: string | null
+  reference: string; notes: string; received_by: string; received_by_name: string; created_at: string; cancelled_at: string | null; cancel_reason: string
+  allocated: number; credit: number; allocations?: AllocationLine[]; pupil_overdue?: number; pupil_outstanding?: number
+}
+
+export interface PaymentPreview {
+  open: { charge_id: string; description: string; due_date: string; kind: string; remaining: number; amount: number }[]
+  allocations: { charge_id: string; description: string; due_date: string; kind: string; remaining: number; amount: number }[]
+  credit: number; overdue: number; outstanding: number
+}
+
+export interface StatementRef { id: string; number: string; pupil_id: string; pupil_name: string; year: number; issued_at: string; issued_by: string }
+
+export interface Dashboard {
+  today: string; year: number; expected_month: number; received_month: number; collection_rate: number; overdue: number
+  pupils_overdue: number; active_pupils: number
+  monthly: { month: number; label: string; expected: number; received: number }[]
+  by_method_month: Record<string, number>
+  top_overdue: { pupil_id: string; name: string; class_name: string | null; overdue: number; days: number; phone: string | null }[]
+  recent_payments: { id: string; receipt_no: string; pupil_name: string; amount: number; method: string; paid_on: string }[]
+  pending_discounts: number
+}

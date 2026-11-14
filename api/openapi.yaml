@@ -699,6 +699,7 @@ components:
     Me:
       type: object
       properties:
+        today: { type: string, format: date, description: "School's current date (time zone APP_TIMEZONE)" }
         user:
           type: object
           properties:

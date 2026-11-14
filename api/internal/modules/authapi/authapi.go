@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -21,6 +22,22 @@ import (
 type Handler struct {
 	Pool *pgxpool.Pool
 	Auth *auth.Service
+	Loc  *time.Location
+	Now  func() time.Time
+}
+
+// today is the school's current date (YYYY-MM-DD), so the web app defaults
+// dates to the same day the API uses for due dates and penalties.
+func (h *Handler) today() string {
+	now := time.Now
+	if h.Now != nil {
+		now = h.Now
+	}
+	loc := h.Loc
+	if loc == nil {
+		loc = time.UTC
+	}
+	return now().In(loc).Format(time.DateOnly)
 }
 
 // PublicRoutes need no session.
@@ -107,6 +124,7 @@ type entityRef struct {
 type meResponse struct {
 	User     *auth.User  `json:"user"`
 	Entities []entityRef `json:"entities"`
+	Today    string      `json:"today"`
 }
 
 func (h *Handler) me(w http.ResponseWriter, r *http.Request) error {
@@ -134,7 +152,7 @@ func (h *Handler) buildMe(ctx context.Context, u *auth.User) (*meResponse, error
 	if ents == nil {
 		ents = []entityRef{}
 	}
-	return &meResponse{User: u, Entities: ents}, nil
+	return &meResponse{User: u, Entities: ents, Today: h.today()}, nil
 }
 
 type passwordRequest struct {
