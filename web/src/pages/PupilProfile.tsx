@@ -273,7 +273,7 @@ export function PupilProfilePage() {
             <Card key={g.guardian_id} className="p-5">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold text-navy">{g.full_name}</p>
+                  <Link to={`/encarregados/${g.guardian_id}`} className="font-semibold text-navy hover:underline">{g.full_name}</Link>
                   <p className="text-sm text-ink-muted">{pt.relationship[g.relationship]}{g.neighbourhood && ` · ${g.neighbourhood}`}</p>
                 </div>
                 {g.is_payer && <Badge tone="info">Responsável pelos pagamentos</Badge>}

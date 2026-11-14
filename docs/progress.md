@@ -16,8 +16,8 @@ Keep this file current at the end of every work session: what is done, what is n
 | — | Hosting: CI on PRs, deploy on merge (GHCR images → VPS behind Nginx), `docs/deploy-vps.md` | Done (PR `ci/pipeline-vps`) |
 | 7b-1 | Web app: enrolment wizard, drafts, renewal, withdrawal, edit pupil data | Done (PR `feat/m7b1-enrolment`) |
 | 7b-2 | Web app: arrears and charges, penalty waivers, discount requests and approvals | Done (PR `feat/m7b2-charges`) |
-| 7b-3 | Web app: payments list, documents (class statements, receipts), reports with Excel export, guardian profile | Next |
-| 7b-4 | Web app: classes, school years, fee catalogue, penalty rules, discount types, users and roles | |
+| 7b-3 | Web app: payments list, documents (class statements, receipts), reports with Excel export, guardian profile | Done (PR `feat/m7b3-payments-docs-reports`) |
+| 7b-4 | Web app: classes, school years, fee catalogue, penalty rules, discount types, receiving accounts, users and roles | Next |
 | 8 | Import of existing data, backups, go-live | |
 
 ## Milestone 1 — done
@@ -83,6 +83,14 @@ Keep this file current at the end of every work session: what is done, what is n
 - API: `/auth/me` returns the school's `today`; `FAKE_TODAY` (non-prod) pins the date for demos/training.
 - Docker: `caddy` now builds the web app (`web/Dockerfile`).
 - Verified in Chromium at 1440 px and 390 px against the real API with demo data (no horizontal scroll on mobile, no console errors).
+
+## Milestone 7b-3 — done
+
+- `/pagamentos`: received in the period (today / this month / this year / custom dates) with totals per method (click to filter), account and status filters, search by pupil, receipt or reference; paged list (family payments marked). Payment detail sheet: what it settled, receipt PDF / print, cancel with reason (`payments.cancel`; the receipt keeps its number and shows ANULADO).
+- `/relatorios`: income (by month, method or account, date range), arrears, pupils per class, discounts, penalties and VAT — one generic table renderer for the API's `report.Table`, the same data as the Excel export button.
+- `/documentos`: class statements (one numbered statement per pupil, one PDF), one pupil's statement, enrolment form, and the register of issued statements (reopen as issued).
+- `/encarregados/:id` (linked from the pupil's guardians tab): contacts, children with this year's class and balances, family totals, per-child payment and **family payment** (one amount split between the children, one receipt each, shared reference; `POST /payments/group`).
+- The bank method label is now just "Banco" (the account carries the bank name).
 
 ## Milestone 7b-2 — done
 

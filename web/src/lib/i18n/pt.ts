@@ -39,7 +39,7 @@ export const pt = {
   chargeKind: { monthly: 'Mensalidade', one_off: 'Taxa', penalty: 'Multa' } as Record<string, string>,
   discountStatus: { pending: 'Pendente', approved: 'Aprovado', rejected: 'Recusado' } as Record<string, string>,
   enrolmentStatus: { draft: 'Rascunho', confirmed: 'Matriculado', withdrawn: 'Desistiu' } as Record<string, string>,
-  methods: { cash: 'Numerário', bank: 'Banco (BIM)', mpesa: 'M-Pesa', emola: 'e-Mola' } as Record<string, string>,
+  methods: { cash: 'Numerário', bank: 'Banco', mpesa: 'M-Pesa', emola: 'e-Mola' } as Record<string, string>,
   relationship: { mother: 'Mãe', father: 'Pai', guardian: 'Encarregado', other: 'Outro' } as Record<string, string>,
   months: ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
   monthsShort: ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
