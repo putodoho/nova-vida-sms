@@ -17,8 +17,8 @@ Keep this file current at the end of every work session: what is done, what is n
 | 7b-1 | Web app: enrolment wizard, drafts, renewal, withdrawal, edit pupil data | Done (PR `feat/m7b1-enrolment`) |
 | 7b-2 | Web app: arrears and charges, penalty waivers, discount requests and approvals | Done (PR `feat/m7b2-charges`) |
 | 7b-3 | Web app: payments list, documents (class statements, receipts), reports with Excel export, guardian profile | Done (PR `feat/m7b3-payments-docs-reports`) |
-| 7b-4 | Web app: classes, school years, fee catalogue, penalty rules, discount types, receiving accounts, users and roles | Next |
-| 8 | Import of existing data, backups, go-live | |
+| 7b-4 | Web app: classes, school years, fee catalogue, penalty rules, discount types, receiving accounts, users and roles | Done (PR `feat/m7b4-settings`) |
+| 8 | Import of existing data, backups, go-live | Next |
 
 ## Milestone 1 — done
 
@@ -83,6 +83,18 @@ Keep this file current at the end of every work session: what is done, what is n
 - API: `/auth/me` returns the school's `today`; `FAKE_TODAY` (non-prod) pins the date for demos/training.
 - Docker: `caddy` now builds the web app (`web/Dockerfile`).
 - Verified in Chromium at 1440 px and 390 px against the real API with demo data (no horizontal scroll on mobile, no console errors).
+
+## Milestone 7b-4 — done
+
+- `/turmas`: classes of the year with occupancy; create, edit (level, grade, capacity, room, teacher) and delete empty classes (`settings.manage`). `/turmas/:id`: pupils in the class with health alert, payer contact and overdue; class statements and the class arrears Excel.
+- `/configuracoes` (`settings.manage`):
+  - **Escola e contas**: legal data shown on documents, VAT calculation method, receiving accounts (create, edit, deactivate).
+  - **Anos lectivos**: create/edit years (billing months, due day, status), "Usar" to switch to a year, copy the fee catalogue from an earlier year (warns about items copied inactive).
+  - **Tabela de preços**: monthly services and one-off fees of the selected year — amount, VAT (none / included / added, rate), due rule for one-offs, class scope, mandatory, active.
+  - **Multas**: penalty rule per level — none, percentage with grace days, or fixed tiers (replace / cumulative).
+  - **Tipos de desconto**: % or MT (empty = case by case), which monthly items, approval required, active.
+- `/funcionarios` (`users.manage`): users (roles, schools, staff link, active, reset password), roles with grouped permission checkboxes (admin always has all), staff records.
+- Every screen of the brief now exists; the "7b" placeholders are gone. Shared form helpers: `src/lib/forms.ts`, `src/features/common/FormDialog.tsx`.
 
 ## Milestone 7b-3 — done
 

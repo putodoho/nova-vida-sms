@@ -18,9 +18,9 @@ export interface List<T> { items: T[]; total: number }
 
 export interface SchoolYear { id: string; year: number; starts_on: string; ends_on: string; billing_months: number[]; due_day: number; status: 'planning' | 'open' | 'closed' }
 
-export interface ClassItem { id: string; entity_id: string; name: string; grade: number | null; capacity: number; enrolled: number; teacher_name: string | null; school_year_id: string; level_id: string; room: string }
+export interface ClassItem { id: string; entity_id: string; name: string; grade: number | null; capacity: number; enrolled: number; teacher_name: string | null; teacher_staff_id: string | null; school_year_id: string; level_id: string; room: string }
 
-export interface FeeItem { id: string; code: string; name: string; kind: 'monthly' | 'one_off'; amount: number; mandatory: boolean; active: boolean; class_ids: string[]; due_rule: { on_enrolment?: boolean; date?: string } | null; lines: { net: number; vat: number; gross: number } }
+export interface FeeItem { id: string; entity_id: string; school_year_id: string; code: string; name: string; kind: 'monthly' | 'one_off'; amount: number; vat_mode: 'none' | 'included' | 'added'; vat_rate_bp: number; mandatory: boolean; active: boolean; class_ids: string[]; due_rule: { on_enrolment?: boolean; date?: string } | null; lines: { net: number; vat: number; gross: number } }
 
 export interface Account { id: string; entity_id: string; kind: 'cash' | 'bank' | 'mpesa' | 'emola'; label: string; holder: string; number: string; nib: string; active: boolean }
 
@@ -131,3 +131,13 @@ export interface ReportTable {
   rows: (string | number | null)[][]
   totals?: (string | number | null)[]
 }
+
+export interface PenaltyRule { type: 'none' | 'percent' | 'fixed_tiers'; rate_bp?: number; grace_days: number; mode?: 'replace' | 'cumulative'; tiers?: { after_day: number; amount: number }[] }
+export interface Level { id: string; entity_id: string; code: string; name: string; penalty_rule: PenaltyRule }
+
+export interface Entity { id: string; code: string; legal_name: string; short_name: string; nuit: string; address: string; motto: string; logo_path: string; vat_method: string }
+
+export interface Staff { id: string; full_name: string; function: string; phone: string; email: string; active: boolean }
+export interface AppUser { id: string; staff_id: string | null; login: string; display_name: string; active: boolean; last_login_at: string | null; role_ids: string[]; role_codes: string[]; entity_ids: string[] }
+export interface Role { id: string; code: string; name: string; description: string; system: boolean; permissions: string[]; users: number }
+export interface PermissionInfo { code: string; module: string; label: string }
