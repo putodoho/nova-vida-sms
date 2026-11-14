@@ -233,7 +233,7 @@ function PaymentForm({ initialPupil, onDone, onAnother }: { initialPupil?: Pupil
                 {methods.map((m) => (
                   <button key={m} type="button" onClick={() => setMethod(m)}
                     className={cn('h-10 rounded-lg border text-sm font-medium', method === m ? 'border-brand bg-brand-tint text-brand' : 'border-line bg-white text-ink hover:bg-page')}>
-                    {pt.methods[m].replace(' (BIM)', '')}
+                    {pt.methods[m]}
                   </button>
                 ))}
               </div>

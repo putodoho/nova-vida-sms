@@ -122,3 +122,12 @@ export interface DiscountRequest {
   /** pending: what approval would grant now; approved: what was granted */
   estimated_amount: number
 }
+
+export interface PaymentList { items: Payment[]; total: number; sum: number; by_method: Record<string, number> }
+
+export interface ReportTable {
+  title: string
+  columns: { key: string; label: string; type: 'text' | 'int' | 'money' | 'date' | 'percent' }[]
+  rows: (string | number | null)[][]
+  totals?: (string | number | null)[]
+}
