@@ -92,3 +92,9 @@ export function initials(name: string): string {
 export function percent(x: number): string {
   return `${(x * 100).toFixed(1).replace('.', ',')}%`
 }
+
+/** Basis points (10000 = 100%) as "10%" or "12,5%". */
+export function percentBP(bp: number): string {
+  const n = bp / 100
+  return `${Number.isInteger(n) ? n : n.toFixed(2).replace(/0+$/, '').replace('.', ',')}%`
+}

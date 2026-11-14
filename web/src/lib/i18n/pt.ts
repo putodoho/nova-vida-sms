@@ -36,6 +36,8 @@ export const pt = {
     upcoming: 'Por vencer',
     cancelled: 'Anulado',
   } as Record<string, string>,
+  chargeKind: { monthly: 'Mensalidade', one_off: 'Taxa', penalty: 'Multa' } as Record<string, string>,
+  discountStatus: { pending: 'Pendente', approved: 'Aprovado', rejected: 'Recusado' } as Record<string, string>,
   enrolmentStatus: { draft: 'Rascunho', confirmed: 'Matriculado', withdrawn: 'Desistiu' } as Record<string, string>,
   methods: { cash: 'Numerário', bank: 'Banco (BIM)', mpesa: 'M-Pesa', emola: 'e-Mola' } as Record<string, string>,
   relationship: { mother: 'Mãe', father: 'Pai', guardian: 'Encarregado', other: 'Outro' } as Record<string, string>,

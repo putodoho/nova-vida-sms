@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -56,6 +57,28 @@ func TestPenaltiesPrimary(t *testing.T) {
 		ch.Aging.D31to60 != 530000+26500 || ch.Aging.D1to30 != 530000+26500 || ch.Aging.Pupils != 1 {
 		t.Fatalf("arrears: %d total=%d aging=%+v", s, ch.Total, ch.Aging)
 	}
+	// Per-pupil calling list: overdue fees and penalties, oldest due 5 February.
+	var arr struct {
+		Items []struct {
+			Number      string `json:"number"`
+			Overdue     int64  `json:"overdue"`
+			Outstanding int64  `json:"outstanding"`
+			Charges     int    `json:"charges"`
+			OldestDue   string `json:"oldest_due"`
+			DaysOverdue int    `json:"days_overdue"`
+		} `json:"items"`
+	}
+	if s := admin.do("GET", "/api/v1/charges/arrears", nil, &arr); s != 200 || len(arr.Items) != 1 || arr.Items[0].Overdue != 1060000+53000 ||
+		arr.Items[0].Outstanding != 5300000+53000 || arr.Items[0].Charges != 12 || arr.Items[0].OldestDue != "2027-02-05" || arr.Items[0].DaysOverdue != 33 {
+		t.Fatalf("arrears by pupil: %d %+v", s, arr)
+	}
+	if admin.do("GET", "/api/v1/charges/arrears?min_days=34", nil, &arr); len(arr.Items) != 0 {
+		t.Fatalf("min_days filter: %+v", arr)
+	}
+	if s, ct, _ := admin.raw("GET", "/api/v1/charges/arrears?format=xlsx", nil); s != 200 || !strings.Contains(ct, "spreadsheetml") {
+		t.Fatalf("arrears xlsx: %d %s", s, ct)
+	}
+
 	var penalty, marchLunch string
 	for _, c := range ch.Items {
 		if c.Kind == "penalty" && c.Description == "Multa – Mensalidade 1.ª–3.ª classe – Março 2027" {

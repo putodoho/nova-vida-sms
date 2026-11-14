@@ -2,7 +2,7 @@ import * as React from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { AlertTriangle, ArrowLeft, ClipboardPlus, FileText, LogOut, Pencil, HeartPulse, Phone, Printer, Receipt, ShieldCheck, Wallet } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Ban, ClipboardPlus, FileText, LogOut, Pencil, Percent, HeartPulse, Phone, Printer, Receipt, ShieldCheck, Wallet } from 'lucide-react'
 import { api, openDocument } from '@/lib/api'
 import { age, date, dateTime, money } from '@/lib/format'
 import { pt } from '@/lib/i18n/pt'
@@ -13,7 +13,9 @@ import {
 } from '@/components/ui'
 import { usePaymentSheet } from '@/features/payments/PaymentSheet'
 import { WithdrawDialog } from '@/features/enrolment/WithdrawDialog'
-import type { Enrolment, List, Payment, PupilAccount, PupilProfile, StatementRef } from '@/api/types'
+import { ChargeActionDialog, type ChargeRef } from '@/features/charges/ChargeActionDialog'
+import { describeValue, DiscountRequestDialog } from '@/features/discounts/DiscountRequestDialog'
+import type { AccountCharge, DiscountRequest, Enrolment, List, Payment, PupilAccount, PupilProfile, StatementRef } from '@/api/types'
 
 const orphanLabel: Record<string, string> = { none: 'Não', father: 'Órfão de pai', mother: 'Órfão de mãe', both: 'Órfão de pai e mãe' }
 
@@ -33,6 +35,8 @@ export function PupilProfilePage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const [withdrawing, setWithdrawing] = React.useState(false)
+  const [discounting, setDiscounting] = React.useState(false)
+  const [acting, setActing] = React.useState<ChargeRef | null>(null)
 
   const profile = useQuery({ queryKey: ['pupil', id], queryFn: () => api.get<PupilProfile>(`/pupils/${id}`) })
   const p = profile.data
@@ -52,6 +56,11 @@ export function PupilProfilePage() {
     queryKey: ['payments', 'pupil', id, entity?.id ?? 'all'],
     queryFn: () => api.get<List<Payment>>('/payments', { pupil_id: id, page_size: 100 }),
     enabled: can('charges.read'),
+  })
+  const discounts = useQuery({
+    queryKey: ['discount-requests', 'enrolment', current?.id],
+    queryFn: () => api.get<List<DiscountRequest>>('/discount-requests', { enrolment_id: current!.id }),
+    enabled: can('charges.read') && current?.status === 'confirmed',
   })
   const statements = useQuery({
     queryKey: ['statements', id, entity?.id ?? 'all'],
@@ -128,6 +137,9 @@ export function PupilProfilePage() {
           {can('enrolments.write') && entity && !current && p.status === 'active' && (
             <Button onClick={() => navigate(`/matriculas/nova?pupil=${p.id}`)}><ClipboardPlus className="h-4 w-4" /> Matricular em {year?.year}</Button>
           )}
+          {can('discounts.request') && entity && current?.status === 'confirmed' && current.entity_id === entity.id && (
+            <Button variant="ghost" onClick={() => setDiscounting(true)}><Percent className="h-4 w-4" /> Pedir desconto</Button>
+          )}
           {can('pupils.write') && (
             <Button variant="ghost" onClick={() => navigate(`/alunos/${p.id}/editar`)}><Pencil className="h-4 w-4" /> Editar dados</Button>
           )}
@@ -135,6 +147,10 @@ export function PupilProfilePage() {
             <Button variant="ghost" className="text-bad hover:bg-bad-tint sm:ml-auto" onClick={() => setWithdrawing(true)}><LogOut className="h-4 w-4" /> Registar desistência</Button>
           )}
         </div>
+        {current && discounting && (
+          <DiscountRequestDialog open onClose={() => setDiscounting(false)} target={{ enrolmentId: current.id, pupilName: p.full_name, className: current.class_name }} />
+        )}
+        <ChargeActionDialog charge={acting} onClose={() => setActing(null)} />
         {current && withdrawing && (
           <WithdrawDialog enrolmentId={current.id} pupilId={p.id} pupilName={p.full_name} open={withdrawing} onOpenChange={setWithdrawing} />
         )}
@@ -203,7 +219,27 @@ export function PupilProfilePage() {
         </TabsContent>
 
         <TabsContent value="account" className="mt-4">
-          <AccountTab account={account.data} loading={account.isLoading} />
+          {discounts.data && discounts.data.items.some((d) => d.status !== 'rejected') && (
+            <ul className="mb-4 space-y-2">
+              {discounts.data.items.filter((d) => d.status !== 'rejected').map((d) => (
+                <li key={d.id} className={cn('flex flex-wrap items-center gap-2 rounded-card border px-4 py-2.5 text-sm',
+                  d.status === 'pending' ? 'border-warn/30 bg-warn-tint' : 'border-ok/25 bg-ok-tint')}>
+                  <Percent className="h-4 w-4 shrink-0 text-ink-muted" />
+                  <span className="font-medium text-navy">{d.discount_type} · {describeValue(d)}</span>
+                  <span className="text-ink-muted">desde {pt.months[d.scope.from_month]}</span>
+                  <Badge tone={d.status === 'pending' ? 'warn' : 'ok'} className="ml-auto">
+                    {pt.discountStatus[d.status]}{d.status === 'approved' && ` · ${money(d.estimated_amount)}`}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+          <AccountTab
+            account={account.data}
+            loading={account.isLoading}
+            canAct={(c) => !!entity && c.entity_id === entity.id && c.status !== 'cancelled' && (c.kind === 'penalty' ? can('penalties.waive') : can('charges.cancel'))}
+            onAct={(c) => setActing({ ...c, pupil_name: p.full_name })}
+          />
         </TabsContent>
 
         <TabsContent value="payments" className="mt-4">
@@ -332,7 +368,9 @@ export function PupilProfilePage() {
   )
 }
 
-function AccountTab({ account, loading }: { account?: PupilAccount; loading: boolean }) {
+function AccountTab({ account, loading, canAct, onAct }: {
+  account?: PupilAccount; loading: boolean; canAct: (c: AccountCharge) => boolean; onAct: (c: AccountCharge) => void
+}) {
   if (loading) return <Skeleton className="h-96 rounded-card" />
   if (!account || account.charges.length === 0) {
     return <Card><EmptyState icon={<ShieldCheck className="h-6 w-6" />} title="Sem cobranças neste ano" /></Card>
@@ -366,13 +404,18 @@ function AccountTab({ account, loading }: { account?: PupilAccount; loading: boo
               <div className="shrink-0 text-right">
                 {c.remaining > 0 && <p className="text-sm font-semibold tabular-nums text-navy">{money(c.remaining)}</p>}
                 <ChargeStatus status={c.status} />
+                {canAct(c) && (
+                  <button type="button" className="mt-1 block w-full text-right text-xs font-medium text-ink-muted hover:text-bad" onClick={() => onAct(c)}>
+                    {c.kind === 'penalty' ? 'Perdoar' : 'Anular'}
+                  </button>
+                )}
               </div>
             </li>
           ))}
         </ul>
         <Table className="hidden md:block">
           <thead>
-            <tr><Th>Descrição</Th><Th>Vencimento</Th><Th align="right">Valor</Th><Th align="right">Desconto</Th><Th align="right">Pago</Th><Th align="right">Por pagar</Th><Th>Estado</Th></tr>
+            <tr><Th>Descrição</Th><Th>Vencimento</Th><Th align="right">Valor</Th><Th align="right">Desconto</Th><Th align="right">Pago</Th><Th align="right">Por pagar</Th><Th>Estado</Th><Th /></tr>
           </thead>
           <tbody>
             {visible.map((c) => (
@@ -387,6 +430,14 @@ function AccountTab({ account, loading }: { account?: PupilAccount; loading: boo
                 <Td align="right">{c.paid ? money(c.paid) : ''}</Td>
                 <Td align="right" className="font-semibold text-navy">{c.remaining ? money(c.remaining) : ''}</Td>
                 <Td><ChargeStatus status={c.status} /></Td>
+                <Td align="right">
+                  {canAct(c) && (
+                    <button type="button" title={c.kind === 'penalty' ? 'Perdoar multa' : 'Anular cobrança'} aria-label={c.kind === 'penalty' ? 'Perdoar multa' : 'Anular cobrança'}
+                      className="rounded-md p-1.5 text-ink-muted hover:bg-bad-tint hover:text-bad" onClick={() => onAct(c)}>
+                      <Ban className="h-4 w-4" />
+                    </button>
+                  )}
+                </Td>
               </tr>
             ))}
           </tbody>
@@ -397,7 +448,7 @@ function AccountTab({ account, loading }: { account?: PupilAccount; loading: boo
               <Td align="right">{money(visible.reduce((a, c) => a + c.discount, 0))}</Td>
               <Td align="right">{money(s.paid)}</Td>
               <Td align="right">{money(s.outstanding)}</Td>
-              <Td />
+              <Td /><Td />
             </tr>
           </tfoot>
         </Table>

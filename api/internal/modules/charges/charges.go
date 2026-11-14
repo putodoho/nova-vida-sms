@@ -30,6 +30,7 @@ type Handler struct {
 
 func (h *Handler) Routes(r chi.Router) {
 	r.With(auth.Require(auth.ChargesRead)).Method(http.MethodGet, "/charges", httpx.Handler(h.list))
+	r.With(auth.Require(auth.ChargesRead)).Method(http.MethodGet, "/charges/arrears", httpx.Handler(h.arrears))
 	r.With(auth.Require(auth.ChargesCancel)).Method(http.MethodPost, "/charges/{id}/cancel", httpx.Handler(h.cancel))
 	r.With(auth.Require(auth.PenaltiesWaive)).Method(http.MethodPost, "/penalties/{id}/waive", httpx.Handler(h.waive))
 	r.With(auth.Require(auth.SettingsManage)).Method(http.MethodPost, "/penalties/run", httpx.Handler(h.runPenalties))
